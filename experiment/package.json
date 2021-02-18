@@ -1,0 +1,43 @@
+{
+  "name": "tenderize",
+  "version": "0.0.1",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tenderize/solana"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node main.ts"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1",
+    "@types/eslint": "^7.2.4",
+    "@types/eslint-plugin-prettier": "^3.1.0",
+    "@types/mkdirp": "^1.0.1",
+    "@types/mz": "^2.7.2",
+    "@types/prettier": "^2.1.5",
+    "@typescript-eslint/eslint-plugin": "^4.6.0",
+    "@typescript-eslint/parser": "^4.6.0",
+    "eslint": "^7.12.1",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "prettier": "^2.1.2",
+    "start-server-and-test": "^1.11.6",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.5"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^0.89.1",
+    "buffer-layout": "^1.2.0",
+    "dotenv": "8.2.0",
+    "json-to-pretty-yaml": "^1.2.2",
+    "mkdirp": "^1.0.4",
+    "mz": "^2.7.0"
+  },
+  "engines": {
+    "node": "12.x"
+  }
+}
