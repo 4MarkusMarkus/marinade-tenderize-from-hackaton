@@ -5,6 +5,8 @@ use thiserror::Error;
 #[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
 pub enum StakingError {
 
+    #[error("Invalid transaction instruction")]
+    InvalidInstruction,
     #[error("Withdrawal account doesn't stake any tokens")]
     NoStaking,
 }
