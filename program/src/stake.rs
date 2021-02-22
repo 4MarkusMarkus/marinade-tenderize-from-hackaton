@@ -12,7 +12,8 @@ use std::str::FromStr;
 
 solana_program::declare_id!("Stake11111111111111111111111111111111111111");
 
-const STAKE_CONFIG: &str = "StakeConfig11111111111111111111111111111111";
+/// Stake config account id
+pub const STAKE_CONFIG: &str = "StakeConfig11111111111111111111111111111111";
 
 /// FIXME copied from solana stake program
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]

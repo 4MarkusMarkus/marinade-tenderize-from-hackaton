@@ -18,12 +18,23 @@ import { TenderizeProgram } from './tenderize';
 export class Tester {
   connection: Connection;
   payerAccount: Account;
-  tenderize: TenderizeProgram;
+  tenderize?: TenderizeProgram;
 
-  private constructor(connection: Connection, payerAccount: Account, tenderizeAccount: Account) {
+  private constructor(connection: Connection, payerAccount: Account) {
     this.connection = connection;
     this.payerAccount = payerAccount;
-    this.tenderize = new TenderizeProgram(connection, payerAccount, tenderizeAccount);
+  }
+
+  async initTenderize() {
+    this.tenderize = new TenderizeProgram(
+      this.connection,
+      this.payerAccount,
+      await Tester.loadAccount("solana_bpf_tenderize-keypair"),
+      await Tester.loadAccount("stake_pool"),
+      this.payerAccount, // owner
+      await Tester.loadAccount("validator_list"),
+      (await Tester.loadAccount('tSOL_token')).publicKey,
+      (await Tester.loadAccount('owners_fee')).publicKey);
   }
 
   static async loadAccount(name: String): Promise<Account> {
@@ -99,20 +110,10 @@ export class Tester {
     return account;
   }
 
-  async createStakePool(stakePool: Account): Promise<void> {
-    console.log(`Create stake pool ${stakePool.publicKey.toBase58()}`);
-    const token = await Tester.loadAccount('tSOL_token');
-    const ownersFee = await Tester.loadAccount('owners_fee');
-    console.log(`For token ${token.publicKey.toBase58()}`);
-    console.log(`For owners fee account ${ownersFee.publicKey.toBase58()}`);
-
-    await this.tenderize.createStakePool({
+  async createStakePool(): Promise<void> {
+    await this.tenderize!.createStakePool({
       feeDenominator: 100,
-      feeNumerator: 3,
-      stakePool,
-      owner: this.payerAccount,
-      mint: token.publicKey,
-      ownersFee: ownersFee.publicKey
+      feeNumerator: 3
     });
   }
 
@@ -149,6 +150,11 @@ export class Tester {
       'Sol to pay for fees',
     );
 
-    return new Tester(connection, payerAccount!, await Tester.loadAccount("solana_bpf_tenderize-keypair"));
+    return new Tester(connection, payerAccount!);
+  }
+
+  async getValidators() {
+    const votes = await this.connection.getVoteAccounts('singleGossip');
+    return votes.current.map((v) => new PublicKey(v.votePubkey));
   }
 }

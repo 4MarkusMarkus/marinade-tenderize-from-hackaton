@@ -1,5 +1,7 @@
 //! Program state processor
 
+use std::str::FromStr;
+
 use crate::{
     error::StakePoolError,
     instruction::{InitArgs, StakePoolInstruction},
@@ -27,6 +29,7 @@ use solana_program::{
     sysvar::Sysvar,
 };
 use spl_token::state::Mint;
+use stake::StakeState;
 
 /// Program state handler.
 pub struct Processor {}
@@ -76,9 +79,14 @@ impl Processor {
         authority_type: &[u8],
         bump_seed: u8,
     ) -> Result<(), ProgramError> {
-        if *authority_to_check
-            != Self::authority_id(program_id, stake_pool_key, authority_type, bump_seed)?
-        {
+        let id = Self::authority_id(program_id, stake_pool_key, authority_type, bump_seed)?;
+        if *authority_to_check != id {
+            msg!(
+                "Check {} authority fails. Expected {} got {}",
+                std::str::from_utf8(authority_type).unwrap(),
+                id,
+                authority_to_check
+            );
             return Err(StakePoolError::InvalidProgramAddress.into());
         }
         Ok(())
@@ -87,7 +95,10 @@ impl Processor {
     /// Returns validator address for a particular stake account
     pub fn get_validator(stake_account_info: &AccountInfo) -> Result<Pubkey, ProgramError> {
         let stake_state: stake::StakeState = deserialize(&stake_account_info.data.borrow())
-            .or(Err(ProgramError::InvalidAccountData))?;
+            .or_else(|_| {
+                msg!("Error reading stake {} state", stake_account_info.key);
+                Err(ProgramError::InvalidAccountData)
+            })?;
         match stake_state {
             stake::StakeState::Stake(_, stake) => Ok(stake.delegation.voter_pubkey),
             _ => Err(StakePoolError::WrongStakeState.into()),
@@ -417,10 +428,10 @@ impl Processor {
         let stake_account_info = next_account_info(account_info_iter)?;
         // Validator this stake account will vote for
         let validator_info = next_account_info(account_info_iter)?;
-        // Stake authority for the new stake account
-        let stake_authority_info = next_account_info(account_info_iter)?;
-        // Withdraw authority for the new stake account
-        let withdraw_authority_info = next_account_info(account_info_iter)?;
+        // Stake pool deposit authority
+        let deposit_info = next_account_info(account_info_iter)?;
+        // Stake pool withdraw authority
+        let withdraw_info = next_account_info(account_info_iter)?;
         // Rent sysvar account
         let rent_info = next_account_info(account_info_iter)?;
         let rent = &Rent::from_account_info(rent_info)?;
@@ -428,6 +439,18 @@ impl Processor {
         let system_program_info = next_account_info(account_info_iter)?;
         // Staking program id
         let stake_program_info = next_account_info(account_info_iter)?;
+        // Clock sysvar account
+        let clock_info = next_account_info(account_info_iter)?;
+        let _clock = &Clock::from_account_info(clock_info)?;
+        // Stake history sysvar account
+        let stake_history_info = next_account_info(account_info_iter)?;
+        let _stake_history = &StakeHistory::from_account_info(stake_history_info)?;
+        // Stake config sysvar account
+        let stake_config_info = next_account_info(account_info_iter)?;
+
+        msg!("Reading stake pool data");
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        msg!("Reading stake pool data complete");
 
         // Check program ids
         if *system_program_info.key != solana_program::system_program::id() {
@@ -444,13 +467,32 @@ impl Processor {
             &stake_pool_info.key,
         );
         if stake_address != *stake_account_info.key {
+            msg!(
+                "Expected stake address {} but got {}",
+                stake_address,
+                stake_account_info.key
+            );
             return Err(StakePoolError::InvalidStakeAccountAddress.into());
+        }
+
+        // Check authority accounts
+        stake_pool.check_authority_withdraw(withdraw_info.key, program_id, stake_pool_info.key)?;
+        stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
+
+        if *stake_config_info.key != Pubkey::from_str(stake::STAKE_CONFIG).unwrap() {
+            return Err(ProgramError::InvalidArgument);
         }
 
         let stake_account_signer_seeds: &[&[_]] = &[
             &validator_info.key.to_bytes()[..32],
             &stake_pool_info.key.to_bytes()[..32],
             &[bump_seed],
+        ];
+
+        let deposit_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_DEPOSIT,
+            &[stake_pool.deposit_bump_seed],
         ];
 
         // Fund the associated token account with the minimum balance to be rent exempt
@@ -473,8 +515,8 @@ impl Processor {
             &stake::initialize(
                 &stake_account_info.key,
                 &stake::Authorized {
-                    staker: *stake_authority_info.key,
-                    withdrawer: *withdraw_authority_info.key,
+                    staker: *deposit_info.key,
+                    withdrawer: *withdraw_info.key,
                 },
                 &stake::Lockup::default(),
             ),
@@ -483,6 +525,24 @@ impl Processor {
                 rent_info.clone(),
                 stake_program_info.clone(),
             ],
+        )?;
+
+        invoke_signed(
+            &stake::delegate_stake(
+                &stake_account_info.key,
+                deposit_info.key,
+                validator_info.key,
+            ),
+            &[
+                stake_account_info.clone(),
+                deposit_info.clone(),
+                validator_info.clone(),
+                clock_info.clone(),
+                stake_history_info.clone(),
+                stake_config_info.clone(),
+                stake_program_info.clone(),
+            ],
+            &[&deposit_signer_seeds],
         )
     }
 
@@ -568,6 +628,7 @@ impl Processor {
             return Err(StakePoolError::ValidatorAlreadyAdded.into());
         }
 
+        /*
         // Update Withdrawer and Staker authority to the program withdraw authority
         for authority in &[
             stake::StakeAuthorize::Withdrawer,
@@ -584,7 +645,8 @@ impl Processor {
                 clock_info.clone(),
                 stake_program_info.clone(),
             )?;
-        }
+        }*/
+        // TODO: check stake authority
 
         // Calculate and mint tokens
         let stake_lamports = **stake_account_info.lamports.borrow();
