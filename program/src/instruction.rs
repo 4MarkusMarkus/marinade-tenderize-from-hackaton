@@ -32,7 +32,7 @@ pub struct InitArgs {
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum StakePoolInstruction {
-    ///   Initializes a new StakePool.
+    ///   0) Initializes a new StakePool.
     ///
     ///   0. `[w]` New StakePool to create.
     ///   1. `[s]` Owner
@@ -44,7 +44,7 @@ pub enum StakePoolInstruction {
     ///   7. `[]` Token program id
     Initialize(InitArgs),
 
-    ///   Creates new program account for accumulating stakes for a particular validator
+    ///   1) Creates new program account for accumulating stakes for a particular validator
     ///
     ///   0.  `[]` Stake pool account this stake will belong to
     ///   1.  `[ws]` Funding account (must be a system account)
@@ -60,7 +60,7 @@ pub enum StakePoolInstruction {
     ///   11. `[]` Address of config account that carries stake config
     CreateValidatorStakeAccount,
 
-    ///   Adds validator stake account to the pool
+    ///   2) Adds validator stake account to the pool
     ///
     ///   0. `[w]` Stake pool
     ///   1. `[s]` Owner
@@ -76,7 +76,7 @@ pub enum StakePoolInstruction {
     ///  11. `[]` Stake program id,
     AddValidatorStakeAccount,
 
-    ///   Removes validator stake account from the pool
+    ///   3) Removes validator stake account from the pool
     ///
     ///   0. `[w]` Stake pool
     ///   1. `[s]` Owner
@@ -91,21 +91,21 @@ pub enum StakePoolInstruction {
     ///  10. `[]` Stake program id,
     RemoveValidatorStakeAccount,
 
-    ///   Updates balances of validator stake accounts in the pool
+    ///   4) Updates balances of validator stake accounts in the pool
     ///   
     ///   0. `[w]` Validator stake list storage account
     ///   1. `[]` Sysvar clock account
     ///   2. ..2+N ` [] N validator stake accounts to update balances
     UpdateListBalance,
 
-    ///   Updates total pool balance based on balances in validator stake account list storage
+    ///   5) Updates total pool balance based on balances in validator stake account list storage
     ///
     ///   0. `[w]` Stake pool
     ///   1. `[]` Validator stake list storage account
     ///   2. `[]` Sysvar clock account
     UpdatePoolBalance,
 
-    ///   Deposit some stake into the pool.  The output is a "pool" token representing ownership
+    ///   6) Deposit some stake into the pool.  The output is a "pool" token representing ownership
     ///   into the pool. Inputs are converted to the current ratio.
     ///
     ///   0. `[w]` Stake pool
@@ -123,7 +123,7 @@ pub enum StakePoolInstruction {
     ///   12. `[]` Stake program id,
     Deposit,
 
-    ///   Withdraw the token from the pool at the current ratio.
+    ///   7) Withdraw the token from the pool at the current ratio.
     ///   The amount withdrawn is the MIN(u64, stake size)
     ///
     ///   0. `[w]` Stake pool
@@ -140,7 +140,7 @@ pub enum StakePoolInstruction {
     ///   userdata: amount to withdraw
     Withdraw(u64),
 
-    ///   Update the staking pubkey for a stake
+    ///   8) Update the staking pubkey for a stake
     ///
     ///   0. `[w]` StakePool
     ///   1. `[s]` Owner
@@ -151,13 +151,26 @@ pub enum StakePoolInstruction {
     ///   6. `[]` Stake program id,
     SetStakingAuthority,
 
-    ///   Update owner
+    ///   9) Update owner
     ///
     ///   0. `[w]` StakePool
     ///   1. `[s]` Owner
     ///   2. '[]` New owner pubkey
     ///   3. '[]` New owner fee account
     SetOwner,
+
+    ///   10) Test deposit without reserve
+    ///
+    ///   0. `[w]` StakePool
+    ///   1. `[w]` Validator stake list storage account
+    ///  deposit au
+    ///   2. `[ws]` User's wallet
+    ///   8.  `[]` Stake program
+    ///   9.  `[]` Clock sysvar
+    ///   10. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   11. `[]` Address of config account that carries stake config
+    ///   3. ..3+N ` [] N validator stake accounts to update balances
+    TestDeposit(u64),
 }
 
 impl StakePoolInstruction {
@@ -184,6 +197,10 @@ impl StakePoolInstruction {
             }
             8 => Self::SetStakingAuthority,
             9 => Self::SetOwner,
+            10 => {
+                let val: &u64 = unpack(input)?;
+                Self::TestDeposit(*val)
+            }
             _ => return Err(ProgramError::InvalidAccountData),
         })
     }
@@ -228,6 +245,11 @@ impl StakePoolInstruction {
             }
             Self::SetOwner => {
                 output[0] = 9;
+            }
+            Self::TestDeposit(val) => {
+                output[0] = 10;
+                let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
+                *value = *val;
             }
         }
         Ok(output)
