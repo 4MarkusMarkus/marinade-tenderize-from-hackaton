@@ -13,21 +13,50 @@ import path from 'path';
 import fs from 'mz/fs';
 import { execShellCommand } from './util/shell';
 import * as assert from 'assert';
+import { TenderizeProgram } from './tenderize';
 
 export class Tester {
   connection: Connection;
   payerAccount: Account;
+  tenderize?: TenderizeProgram;
 
   private constructor(connection: Connection, payerAccount: Account) {
     this.connection = connection;
     this.payerAccount = payerAccount;
   }
 
-  async getProgramId(name: String): Promise<PublicKey> {
-    const keypair_file_name = path.join('..', 'program', 'dist', name + "-keypair.json");
-    const keypair = JSON.parse(await fs.readFile(keypair_file_name, 'utf8'));
-    const programAccount = new Account(keypair);
-    return programAccount.publicKey;
+  async initTenderize() {
+    this.tenderize = new TenderizeProgram(
+      this.connection,
+      this.payerAccount,
+      await Tester.loadAccount("solana_bpf_tenderize-keypair"),
+      await Tester.loadAccount("stake_pool"),
+      this.payerAccount, // owner
+      await Tester.loadAccount("validator_list"),
+      (await Tester.loadAccount('tSOL_token')).publicKey,
+      (await Tester.loadAccount('owners_fee')).publicKey);
+  }
+
+  static async loadAccount(name: String): Promise<Account> {
+    const keypair_file_name = path.join('..', 'keys', name + '.json');
+    return new Account(JSON.parse(await fs.readFile(keypair_file_name, 'utf-8')));
+  }
+
+  static async saveAccount(name: String, account: Account): Promise<void> {
+    console.log(account.secretKey);
+    await fs.writeFile(
+      path.join('..', 'keys', name + '.json'),
+      JSON.stringify(account.secretKey));
+  }
+
+  static async loadOrNewAccount(name: String): Promise<Account> {
+    try {
+      return await Tester.loadAccount(name);
+    } catch (e) {
+      const account = new Account();
+      await Tester.saveAccount(name, account)
+      return account;
+    }
   }
 
   async runProgram(id: PublicKey, stateAccount: Account): Promise<void> {
@@ -81,6 +110,13 @@ export class Tester {
     return account;
   }
 
+  async createStakePool(): Promise<void> {
+    await this.tenderize!.createStakePool({
+      feeDenominator: 100,
+      feeNumerator: 3
+    });
+  }
+
   static async build(): Promise<Tester> {
     const solana_config = (await execShellCommand('solana config get')).split('\n');
     let url = null;
@@ -115,5 +151,10 @@ export class Tester {
     );
 
     return new Tester(connection, payerAccount!);
+  }
+
+  async getValidators() {
+    const votes = await this.connection.getVoteAccounts('singleGossip');
+    return votes.current.map((v) => new PublicKey(v.votePubkey));
   }
 }

@@ -10,7 +10,8 @@
   "author": "",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node main.ts"
+    "start": "ts-node main.ts",
+    "prepare:env": "spl-token create-token ../keys/tSOL_token.json && spl-token authorize Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm mint 5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg && spl-token create-account Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm ../keys/owners_fee.json"
   },
   "devDependencies": {
     "@tsconfig/recommended": "^1.0.1",
@@ -31,8 +32,8 @@
   },
   "dependencies": {
     "@solana/web3.js": "^0.89.1",
-    "buffer-layout": "^1.2.0",
     "dotenv": "8.2.0",
+    "buffer-layout": "^1.2.0",
     "json-to-pretty-yaml": "^1.2.2",
     "mkdirp": "^1.0.4",
     "mz": "^2.7.0"
