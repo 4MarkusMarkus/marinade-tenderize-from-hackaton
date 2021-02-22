@@ -26,13 +26,6 @@ export class Tester {
     this.tenderize = new TenderizeProgram(connection, payerAccount, tenderizeAccount);
   }
 
-
-  static async getProgramAccount(name: String): Promise<Account> {
-    const keypair_file_name = path.join('..', 'program', 'dist', name + "-keypair.json");
-    const keypair = JSON.parse(await fs.readFile(keypair_file_name, 'utf8'));
-    return new Account(keypair);
-  }
-
   static async loadAccount(name: String): Promise<Account> {
     const keypair_file_name = path.join('..', 'keys', name + '.json');
     return new Account(JSON.parse(await fs.readFile(keypair_file_name, 'utf-8')));
@@ -156,6 +149,6 @@ export class Tester {
       'Sol to pay for fees',
     );
 
-    return new Tester(connection, payerAccount!, await Tester.getProgramAccount("solana_bpf_tenderize"));
+    return new Tester(connection, payerAccount!, await Tester.loadAccount("solana_bpf_tenderize-keypair"));
   }
 }
