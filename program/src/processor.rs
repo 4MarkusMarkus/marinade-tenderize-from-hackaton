@@ -291,6 +291,43 @@ impl Processor {
         invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
     }
 
+    /// Transfer SOLs from user into stake accounts
+    pub fn transfer_to_validator_stakes<
+        'a,
+        'b: 'a,
+        I: ExactSizeIterator<Item = &'a AccountInfo<'b>>,
+    >(
+        system_program_info: &AccountInfo<'b>,
+        source_account: &AccountInfo<'b>,
+        targets: I,
+        total_amount: u64,
+    ) -> Result<(), ProgramError> {
+        let count = targets.len();
+        let amount_per_account = total_amount / count as u64;
+        let mut first = true;
+        for target in targets {
+            let ix = system_instruction::transfer(
+                source_account.key,
+                &target.key,
+                if first {
+                    total_amount - amount_per_account * (count - 1) as u64
+                } else {
+                    amount_per_account
+                },
+            );
+            first = false;
+            invoke(
+                &ix,
+                &[
+                    source_account.clone(),
+                    target.clone(),
+                    system_program_info.clone(),
+                ],
+            )?;
+        }
+        Ok(())
+    }
+
     /// Processes `Initialize` instruction.
     pub fn process_initialize(
         program_id: &Pubkey,
@@ -1307,6 +1344,67 @@ impl Processor {
         stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
         Ok(())
     }
+
+    fn process_test_deposit(
+        program_id: &Pubkey,
+        amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let user_wallet_info = next_account_info(account_info_iter)?;
+        let system_program_info = next_account_info(account_info_iter)?;
+
+        let validator_stake_accounts = account_info_iter.as_slice();
+
+        let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != stake_pool.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let mut validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        for stake in validator_stake_accounts {
+            if validator_stake_list.validators.iter().all(|validator| {
+                Self::find_stake_address_for_validator(
+                    program_id,
+                    &validator.validator_account,
+                    stake_pool_info.key,
+                )
+                .0 != *stake.key
+            }) {
+                msg!("Unexpected validators stake account {}", stake.key);
+                return Err(ProgramError::InvalidArgument);
+            }
+        }
+
+        if *system_program_info.key != solana_program::system_program::id() {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+
+        Self::transfer_to_validator_stakes(
+            system_program_info,
+            user_wallet_info,
+            validator_stake_accounts.iter(),
+            amount,
+        )?;
+
+        // TODO: update stats
+
+        Ok(())
+    }
+
     /// Processes [Instruction](enum.Instruction.html).
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
         let instruction = StakePoolInstruction::deserialize(input)?;
@@ -1350,6 +1448,10 @@ impl Processor {
             StakePoolInstruction::SetOwner => {
                 msg!("Instruction: SetOwner");
                 Self::process_set_owner(program_id, accounts)
+            }
+            StakePoolInstruction::TestDeposit(amount) => {
+                msg!("Instruction: TestDeposit {}", amount);
+                Self::process_test_deposit(program_id, amount, accounts)
             }
         }
     }

@@ -30,6 +30,12 @@ export interface DepositParams {
   feeTokenAccount: PublicKey,
 }
 
+export interface TestDepositParams {
+  amount: number,
+  userWallet: Account,
+  validators: PublicKey[]
+}
+
 export class TenderizeProgram {
   connection: Connection;
   payerAccount: Account;
@@ -102,10 +108,10 @@ export class TenderizeProgram {
   }
 
   createStakePoolInstruction(params: CreateStakePoolParams) {
-    const data = Buffer.alloc(4 + 8 + 8);
-    data.writeUInt32LE(0, 0);
-    data.writeBigUInt64LE(BigInt(params.feeDenominator), 4);
-    data.writeBigUInt64LE(BigInt(params.feeNumerator), 4 + 8);
+    const data = Buffer.alloc(1 + 8 + 8);
+    let p = data.writeUInt8(0, 0);
+    p = data.writeBigUInt64LE(BigInt(params.feeDenominator), p);
+    p = data.writeBigUInt64LE(BigInt(params.feeNumerator), p);
 
     return new TransactionInstruction({
       keys: [
@@ -142,8 +148,8 @@ export class TenderizeProgram {
   }
 
   async createValidatorStakeInstruction(params: CreateValidatorStakeParams) {
-    const data = Buffer.alloc(4);
-    data.writeUInt32LE(1, 0);
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(1, 0);
 
     return new TransactionInstruction({
       keys: [
@@ -180,8 +186,8 @@ export class TenderizeProgram {
   }
 
   async addValidatorInstruction(params: AddValidatorParams) {
-    const data = Buffer.alloc(4);
-    data.writeUInt32LE(2, 0);
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(2, 0);
 
     return new TransactionInstruction({
       keys: [
@@ -215,9 +221,10 @@ export class TenderizeProgram {
         preflightCommitment: 'singleGossip'
       });
   }
+
   depositInstruction(params: DepositParams) {
-    const data = Buffer.alloc(4);
-    data.writeUInt32LE(6, 0);
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(6, 0);
 
     return new TransactionInstruction({
       keys: [
@@ -234,6 +241,47 @@ export class TenderizeProgram {
         { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
         { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async testDeposit(params: TestDepositParams): Promise<void> {
+    const transaction = new Transaction();
+    transaction.add(await this.testDepositInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [params.userWallet],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
+  }
+
+  async testDepositInstruction(params: TestDepositParams) {
+    const data = Buffer.alloc(1 + 8);
+    let p = data.writeUInt8(10, 0);
+    p = data.writeBigUInt64LE(BigInt(params.amount), p);
+
+    const stakesKeys = await Promise.all(
+      params.validators.map(async (key) => {
+        return {
+          pubkey: await this.getStakeForValidator(key),
+          isSigner: false,
+          isWritable: true
+        }
+      }));
+    console.log(`Depositing ${params.amount} into ${stakesKeys.map(k => k.pubkey.toBase58())} accounts`);
+
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+        { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        ...stakesKeys
       ],
       programId: this.programId,
       data,
