@@ -341,6 +341,12 @@ impl Processor {
 
         // Check if fee account's owner the same as token program id
         if owner_fee_info.owner != token_program_info.key {
+            msg!(
+                "Expexted owner fee's account {} to have {} owner but it has {}",
+                owner_fee_info.key,
+                token_program_info.key,
+                owner_fee_info.owner
+            );
             return Err(StakePoolError::InvalidFeeAccount.into());
         }
 
@@ -370,6 +376,11 @@ impl Processor {
         let pool_mint = Mint::unpack_from_slice(&pool_mint_info.data.borrow())?;
 
         if !pool_mint.mint_authority.contains(&withdraw_authority_key) {
+            msg!(
+                "Mint authority is {} but need to be {}",
+                pool_mint.mint_authority.unwrap_or(Pubkey::new(&[0; 32])),
+                withdraw_authority_key
+            );
             return Err(StakePoolError::WrongMintingAuthority.into());
         }
 

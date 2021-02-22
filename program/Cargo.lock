@@ -2255,6 +2255,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "solana-bpf-tenderize"
+version = "0.0.1"
+dependencies = [
+ "arrayref",
+ "bincode",
+ "num-derive",
+ "num-traits",
+ "num_enum",
+ "serde",
+ "serde_derive",
+ "solana-program",
+ "solana-program-test",
+ "solana-sdk",
+ "solana-vote-program",
+ "spl-token",
+ "thiserror",
+ "tokio 0.3.7",
+]
+
+[[package]]
 name = "solana-config-program"
 version = "1.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2617,26 +2637,6 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
-
-[[package]]
-name = "spl-stake-pool"
-version = "0.1.0"
-dependencies = [
- "arrayref",
- "bincode",
- "num-derive",
- "num-traits",
- "num_enum",
- "serde",
- "serde_derive",
- "solana-program",
- "solana-program-test",
- "solana-sdk",
- "solana-vote-program",
- "spl-token",
- "thiserror",
- "tokio 0.3.7",
-]
 
 [[package]]
 name = "spl-token"

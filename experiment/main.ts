@@ -2,18 +2,13 @@
  * Hello world
  */
 
-import { Account } from '@solana/web3.js';
+import { Account, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { TenderizeProgram } from './tenderize';
 import { Tester } from './tester';
 
 async function main() {
-  console.log("Let's say hello to a Solana account...");
-
   const tester = await Tester.build();
-
-  const program = await tester.getProgramId("solana_bpf_tenderize");
-  const state = await tester.makeAccount(program);
-  await tester.runProgram(program, state);
-
+  await tester.createStakePool(await Tester.loadAccount("stake_pool"));
   console.log('Success');
 }
 
