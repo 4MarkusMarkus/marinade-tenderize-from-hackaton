@@ -163,7 +163,12 @@ pub enum StakePoolInstruction {
     ///
     ///   0. `[w]` StakePool
     ///   1. `[w]` Validator stake list storage account
+    ///  deposit au
     ///   2. `[ws]` User's wallet
+    ///   8.  `[]` Stake program
+    ///   9.  `[]` Clock sysvar
+    ///   10. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   11. `[]` Address of config account that carries stake config
     ///   3. ..3+N ` [] N validator stake accounts to update balances
     TestDeposit(u64),
 }

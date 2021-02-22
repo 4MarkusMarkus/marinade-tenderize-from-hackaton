@@ -9,10 +9,12 @@ import { Tester } from './tester';
 async function main() {
   const tester = await Tester.build();
   await tester.initTenderize();
+
+  const withrdawAuthority = new PublicKey("5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg");
+  const depositAuthotiry = new PublicKey("9EVGoPwR9TLrxnuAqhLgk5hBkJY9ogbeUyUu83vqsYki");
+
   if (true) {
     await tester.createStakePool();
-    const withrdawAuthority = new PublicKey("5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg");
-    const depositAuthotiry = new PublicKey("9EVGoPwR9TLrxnuAqhLgk5hBkJY9ogbeUyUu83vqsYki");
     for (const validator of await tester.getValidators()) {
       await tester.tenderize!.createValidatorStake({
         validator,
@@ -29,6 +31,7 @@ async function main() {
   await tester.tenderize!.testDeposit({
     amount: 100,
     userWallet: tester.payerAccount,
+    stakePoolDepositAuthority: depositAuthotiry,
     validators: await tester.getValidators()
   });
   /*

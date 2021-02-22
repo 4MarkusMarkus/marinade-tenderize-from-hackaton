@@ -33,6 +33,7 @@ export interface DepositParams {
 export interface TestDepositParams {
   amount: number,
   userWallet: Account,
+  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
   validators: PublicKey[]
 }
 
@@ -265,24 +266,36 @@ export class TenderizeProgram {
     let p = data.writeUInt8(10, 0);
     p = data.writeBigUInt64LE(BigInt(params.amount), p);
 
-    const stakesKeys = await Promise.all(
-      params.validators.map(async (key) => {
-        return {
-          pubkey: await this.getStakeForValidator(key),
-          isSigner: false,
-          isWritable: true
-        }
-      }));
-    console.log(`Depositing ${params.amount} into ${stakesKeys.map(k => k.pubkey.toBase58())} accounts`);
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+      { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
+      { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },];
+
+    console.log(`Depositing ${params.amount} into`);
+    for (const validator of params.validators) {
+      const stake = await this.getStakeForValidator(validator);
+      console.log(`Validator ${validator.toBase58()} stake ${stake.toBase58()}`);
+      keys.push({
+        pubkey: stake,
+        isSigner: false,
+        isWritable: true
+      });
+
+      keys.push({
+        pubkey: validator,
+        isSigner: false,
+        isWritable: false
+      })
+    }
 
     return new TransactionInstruction({
-      keys: [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        ...stakesKeys
-      ],
+      keys,
       programId: this.programId,
       data,
     });
