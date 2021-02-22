@@ -46,15 +46,18 @@ pub enum StakePoolInstruction {
 
     ///   Creates new program account for accumulating stakes for a particular validator
     ///
-    ///   0. `[]` Stake pool account this stake will belong to
-    ///   1. `[ws]` Funding account (must be a system account)
-    ///   2. `[w]` Stake account to be created
-    ///   3. `[]` Validator this stake account will vote for
-    ///   4. `[]` Stake authority for the new stake account
-    ///   5. `[]` Withdraw authority for the new stake account
-    ///   6. `[]` Rent sysvar
-    ///   7. `[]` System program
-    ///   8. `[]` Stake program
+    ///   0.  `[]` Stake pool account this stake will belong to
+    ///   1.  `[ws]` Funding account (must be a system account)
+    ///   2.  `[w]` Stake account to be created
+    ///   3.  `[]` Validator this stake account will vote for
+    ///   4.  `[s]` Stake pool deposit authority
+    ///   5.  `[]` Stake pool withdraw authority
+    ///   6.  `[]` Rent sysvar
+    ///   7.  `[]` System program
+    ///   8.  `[]` Stake program
+    ///   9.  `[]` Clock sysvar
+    ///   10. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   11. `[]` Address of config account that carries stake config
     CreateValidatorStakeAccount,
 
     ///   Adds validator stake account to the pool
