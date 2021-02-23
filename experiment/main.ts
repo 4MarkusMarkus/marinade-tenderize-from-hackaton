@@ -12,19 +12,12 @@ async function main() {
   if (true) {
     await tester.createStakePool();
     for (const validator of await tester.getValidators()) {
-      await tester.tenderize!.createValidatorStake({
-        validator,
-        stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly
-        stakePoolWithdrawAuthority: withrdawAuthority
-      });
       await tester.tenderize!.addValidator({
-        stakePoolDepositAuthority: depositAuthotiry,
-        stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
         validator,
       })
     }
   }
-  if (true) {
+  if (false) {
     await tester.tenderize!.testDeposit({
       amount: 100,
       userWallet: tester.payerAccount,
@@ -32,7 +25,7 @@ async function main() {
       validators: await tester.getValidators()
     });
   }
-  if (true) {
+  if (false) {
     await tester.tenderize!.testWithdraw({
       amount: 5,
       userWallet: tester.payerAccount,

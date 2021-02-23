@@ -44,37 +44,14 @@ pub enum StakePoolInstruction {
     ///   7. `[]` Token program id
     Initialize(InitArgs),
 
-    ///   1) Creates new program account for accumulating stakes for a particular validator
-    ///
-    ///   0.  `[]` Stake pool account this stake will belong to
-    ///   1.  `[ws]` Funding account (must be a system account)
-    ///   2.  `[w]` Stake account to be created
-    ///   3.  `[]` Validator this stake account will vote for
-    ///   4.  `[s]` Stake pool deposit authority
-    ///   5.  `[]` Stake pool withdraw authority
-    ///   6.  `[]` Rent sysvar
-    ///   7.  `[]` System program
-    ///   8.  `[]` Stake program
-    ///   9.  `[]` Clock sysvar
-    ///   10. `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   11. `[]` Address of config account that carries stake config
-    CreateValidatorStakeAccount,
-
     ///   2) Adds validator stake account to the pool
     ///
-    ///   0. `[w]` Stake pool
+    ///   0. `[]` Stake pool
     ///   1. `[s]` Owner
-    ///   2. `[]` Stake pool deposit authority
-    ///   3. `[]` Stake pool withdraw authority
-    ///   4. `[w]` Validator stake list storage account
-    ///   5. `[w]` Stake account to add to the pool, its withdraw authority should be set to stake pool deposit
-    ///   6. `[w]` User account to receive pool tokens
-    ///   7. `[w]` Pool token mint account
-    ///   8. `[]` Clock sysvar (required)
-    ///   9. '[]' Sysvar stake history account
-    ///  10. `[]` Pool token program id,
-    ///  11. `[]` Stake program id,
-    AddValidatorStakeAccount,
+    ///   2. `[w]` Validator stake list storage account
+    ///   3. `[]` Validator this stake account will vote for
+    ///   4. `[]` Clock sysvar (required)
+    AddValidator,
 
     ///   3) Removes validator stake account from the pool
     ///
@@ -198,8 +175,7 @@ impl StakePoolInstruction {
                 let val: &InitArgs = unpack(input)?;
                 Self::Initialize(*val)
             }
-            1 => Self::CreateValidatorStakeAccount,
-            2 => Self::AddValidatorStakeAccount,
+            2 => Self::AddValidator,
             3 => Self::RemoveValidatorStakeAccount,
             4 => Self::UpdateListBalance,
             5 => Self::UpdatePoolBalance,
@@ -233,10 +209,7 @@ impl StakePoolInstruction {
                 let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut InitArgs) };
                 *value = *init;
             }
-            Self::CreateValidatorStakeAccount => {
-                output[0] = 1;
-            }
-            Self::AddValidatorStakeAccount => {
+            Self::AddValidator => {
                 output[0] = 2;
             }
             Self::RemoveValidatorStakeAccount => {
@@ -317,39 +290,9 @@ pub fn initialize(
         data,
     })
 }
-
-/// Creates `CreateValidatorStakeAccount` instruction (create new stake account for the validator)
-pub fn create_validator_stake_account(
-    program_id: &Pubkey,
-    stake_pool: &Pubkey,
-    funder: &Pubkey,
-    stake_account: &Pubkey,
-    validator: &Pubkey,
-    stake_authority: &Pubkey,
-    withdraw_authority: &Pubkey,
-    system_program_id: &Pubkey,
-    stake_program_id: &Pubkey,
-) -> Result<Instruction, ProgramError> {
-    let accounts = vec![
-        AccountMeta::new_readonly(*stake_pool, false),
-        AccountMeta::new(*funder, true),
-        AccountMeta::new(*stake_account, false),
-        AccountMeta::new_readonly(*validator, false),
-        AccountMeta::new_readonly(*stake_authority, false),
-        AccountMeta::new_readonly(*withdraw_authority, false),
-        AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(*system_program_id, false),
-        AccountMeta::new_readonly(*stake_program_id, false),
-    ];
-    Ok(Instruction {
-        program_id: *program_id,
-        accounts,
-        data: StakePoolInstruction::CreateValidatorStakeAccount.serialize()?,
-    })
-}
-
+/*
 /// Creates `AddValidatorStakeAccount` instruction (add new validator stake account to the pool)
-pub fn add_validator_stake_account(
+pub fn add_validator(
     program_id: &Pubkey,
     stake_pool: &Pubkey,
     owner: &Pubkey,
@@ -381,7 +324,7 @@ pub fn add_validator_stake_account(
         accounts,
         data: StakePoolInstruction::AddValidatorStakeAccount.serialize()?,
     })
-}
+}*/
 
 /// Creates `RemoveValidatorStakeAccount` instruction (remove validator stake account from the pool)
 pub fn remove_validator_stake_account(

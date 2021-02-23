@@ -15,7 +15,6 @@ use std::mem::size_of;
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ReservePool {
-
     /// TODO not sure whether to include other accounts and fees
     /// Reserve pool version
     pub version: u8,
@@ -23,11 +22,9 @@ pub struct ReservePool {
     pub total_amount: u64,
     /// Pool token program id
     pub token_program_id: Pubkey,
-
 }
 
 impl ReservePool {
-
     /// Length of state data when serialized
     pub const LEN: usize = size_of::<ReservePool>();
 
@@ -45,7 +42,8 @@ impl ReservePool {
             return Err(ProgramError::InvalidAccountData);
         }
 
-        let reserve_pool: &ReservePool = unsafe { &*(&input[0] as *const u8 as *const ReservePool) };
+        let reserve_pool: &ReservePool =
+            unsafe { &*(&input[0] as *const u8 as *const ReservePool) };
 
         Ok(*reserve_pool)
     }
@@ -56,7 +54,7 @@ impl ReservePool {
             return Err(ProgramError::InvalidAccountData);
         }
         #[allow(clippy::cast_ptr_alignment)]
-            let value = unsafe { &mut *(&mut output[0] as *mut u8 as *mut ReservePool) };
+        let value = unsafe { &mut *(&mut output[0] as *mut u8 as *mut ReservePool) };
         *value = *self;
 
         Ok(())
@@ -207,7 +205,8 @@ impl StakePool {
     }
 }
 
-const MAX_VALIDATOR_STAKE_ACCOUNTS: usize = 1000;
+/// Max validator count
+pub const MAX_VALIDATORS: usize = 1000;
 
 /// Storage list for all validator stake accounts in the pool.
 #[repr(C)]
@@ -235,8 +234,7 @@ pub struct ValidatorStakeInfo {
 
 impl ValidatorStakeList {
     /// Length of ValidatorStakeList data when serialized
-    pub const LEN: usize =
-        Self::HEADER_LEN + ValidatorStakeInfo::LEN * MAX_VALIDATOR_STAKE_ACCOUNTS;
+    pub const LEN: usize = Self::HEADER_LEN + ValidatorStakeInfo::LEN * MAX_VALIDATORS;
 
     /// Header length
     pub const HEADER_LEN: usize = size_of::<u8>() + size_of::<u16>();
@@ -287,7 +285,7 @@ impl ValidatorStakeList {
                 .try_into()
                 .or(Err(ProgramError::InvalidAccountData))?,
         ) as usize;
-        if number_of_validators > MAX_VALIDATOR_STAKE_ACCOUNTS {
+        if number_of_validators > MAX_VALIDATORS {
             return Err(ProgramError::InvalidAccountData);
         }
         let mut validators: Vec<ValidatorStakeInfo> = Vec::with_capacity(number_of_validators);
@@ -310,7 +308,7 @@ impl ValidatorStakeList {
         if output.len() < Self::LEN {
             return Err(ProgramError::InvalidAccountData);
         }
-        if self.validators.len() > MAX_VALIDATOR_STAKE_ACCOUNTS {
+        if self.validators.len() > MAX_VALIDATORS {
             return Err(ProgramError::InvalidAccountData);
         }
         output[0] = self.version;
@@ -351,6 +349,40 @@ impl ValidatorStakeInfo {
         let value = unsafe { &mut *(&mut output[0] as *mut u8 as *mut ValidatorStakeInfo) };
         *value = *self;
         Ok(())
+    }
+
+    /// Stake account address for validator
+    /// index = 0                     - fully activated stake
+    /// index = 1                     - 1 epoch before activation
+    /// ...
+    /// index = EPOCHS_FOR_DELEGATION - initialized stake
+    pub fn stake_address(
+        &self,
+        program_id: &Pubkey,
+        stake_pool: &Pubkey,
+        index: u8,
+    ) -> (Pubkey, u8) {
+        Pubkey::find_program_address(
+            &[
+                &self.validator_account.to_bytes()[..32],
+                &stake_pool.to_bytes()[..32],
+                &[index],
+            ],
+            program_id,
+        )
+    }
+
+    /// Checks if validator stake account is a proper program address
+    pub fn is_validator_stake_address(
+        &self,
+        program_id: &Pubkey,
+        stake_pool: &Pubkey,
+        index: u8,
+        stake_account_info: &AccountInfo,
+    ) -> bool {
+        // Check stake account address validity
+        let (stake_address, _) = self.stake_address(&program_id, &stake_pool, index);
+        stake_address == *stake_account_info.key
     }
 }
 

@@ -73,6 +73,9 @@ pub enum StakePoolError {
     /// Account is not rent-exempt
     #[error("AccountNotRentExempt")]
     AccountNotRentExempt,
+    /// Validator list is full. Can't add more validators
+    #[error("ValidatorListOverflow")]
+    ValidatorListOverflow,
 }
 impl From<StakePoolError> for ProgramError {
     fn from(e: StakePoolError) -> Self {

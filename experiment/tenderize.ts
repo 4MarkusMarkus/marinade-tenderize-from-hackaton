@@ -16,8 +16,6 @@ export interface CreateValidatorStakeParams {
 }
 
 export interface AddValidatorParams {
-  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
-  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
   validator: PublicKey,
 }
 
@@ -137,46 +135,8 @@ export class TenderizeProgram {
     });
   }
 
-  async createValidatorStake(params: CreateValidatorStakeParams) {
-    console.log(`Create stake ${await this.getStakeForValidator(params.validator)} for validator ${params.validator}`);
-    const transaction = new Transaction();
-    transaction.add(await this.createValidatorStakeInstruction(params));
-    await sendAndConfirmTransaction(
-      this.connection,
-      transaction,
-      [this.payerAccount],
-      {
-        commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
-  }
-
   async getStakeForValidator(validator: PublicKey) {
     return (await PublicKey.findProgramAddress([validator.toBuffer(), this.stakePool.publicKey.toBuffer()], this.programId))[0];
-  }
-
-  async createValidatorStakeInstruction(params: CreateValidatorStakeParams) {
-    const data = Buffer.alloc(1);
-    let p = data.writeUInt8(1, 0);
-
-    return new TransactionInstruction({
-      keys: [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
-        { pubkey: this.payerAccount.publicKey, isSigner: true, isWritable: true },
-        { pubkey: await this.getStakeForValidator(params.validator), isSigner: false, isWritable: true },
-        { pubkey: params.validator, isSigner: false, isWritable: false },
-        { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },
-      ],
-      programId: this.programId,
-      data,
-    });
   }
 
   async addValidator(params: AddValidatorParams) {
@@ -199,18 +159,11 @@ export class TenderizeProgram {
 
     return new TransactionInstruction({
       keys: [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
         { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
-        { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
         { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: await this.getStakeForValidator(params.validator), isSigner: false, isWritable: true },
-        { pubkey: this.ownersFee, isSigner: false, isWritable: true }, // User account to receive pool tokens
-        { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+        { pubkey: params.validator, isSigner: false, isWritable: false },
         { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
       ],
       programId: this.programId,
       data,
