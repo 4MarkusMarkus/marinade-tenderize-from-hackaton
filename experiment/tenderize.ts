@@ -37,6 +37,13 @@ export interface TestDepositParams {
   validators: PublicKey[]
 }
 
+export interface TestWithdrawParams {
+  amount: number,
+  userWallet: Account,
+  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
+  validators: PublicKey[]
+}
+
 export class TenderizeProgram {
   connection: Connection;
   payerAccount: Account;
@@ -301,4 +308,48 @@ export class TenderizeProgram {
     });
   }
 
+  async testWithdraw(params: TestWithdrawParams): Promise<void> {
+    const transaction = new Transaction();
+    transaction.add(await this.testWithdrawInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [params.userWallet],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
+  }
+
+  async testWithdrawInstruction(params: TestWithdrawParams) {
+    const data = Buffer.alloc(1 + 8);
+    let p = data.writeUInt8(11, 0);
+    p = data.writeBigUInt64LE(BigInt(params.amount), p);
+
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+      { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
+      { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },];
+
+    console.log(`Whithdraw ${params.amount} from`);
+    for (const validator of params.validators) {
+      const stake = await this.getStakeForValidator(validator);
+      console.log(`Validator ${validator.toBase58()} stake ${stake.toBase58()}`);
+      keys.push({
+        pubkey: stake,
+        isSigner: false,
+        isWritable: true
+      });
+    }
+
+    return new TransactionInstruction({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
 }

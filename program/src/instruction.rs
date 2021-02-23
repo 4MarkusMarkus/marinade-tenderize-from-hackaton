@@ -163,14 +163,27 @@ pub enum StakePoolInstruction {
     ///
     ///   0. `[w]` StakePool
     ///   1. `[w]` Validator stake list storage account
-    ///  deposit au
-    ///   2. `[ws]` User's wallet
-    ///   8.  `[]` Stake program
-    ///   9.  `[]` Clock sysvar
-    ///   10. `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   11. `[]` Address of config account that carries stake config
-    ///   3. ..3+N ` [] N validator stake accounts to update balances
+    ///   2. `[]` Stake pool deposit authority
+    ///   3. `[ws]` User's wallet
+    ///   4. `[]` System program
+    ///   5. `[]` Stake program
+    ///   6. `[]` Clock sysvar
+    ///   7. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   8. `[]` Address of config account that carries stake config
+    ///   9. ..9+2N ` [w][] N stake + validator vote accounts to update balances
     TestDeposit(u64),
+
+    ///   11) Test deposit without reserve
+    ///
+    ///   0. `[w]` StakePool
+    ///   1. `[w]` Validator stake list storage account
+    ///   2. `[]` Stake pool withdraw authority
+    ///   3. `[w]` User's wallet
+    ///   4. `[]` Stake program
+    ///   5. `[]` Clock sysvar
+    ///   6. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   7..7+N `[w]` N stake accounts
+    TestWithdraw(u64),
 }
 
 impl StakePoolInstruction {
@@ -200,6 +213,10 @@ impl StakePoolInstruction {
             10 => {
                 let val: &u64 = unpack(input)?;
                 Self::TestDeposit(*val)
+            }
+            11 => {
+                let val: &u64 = unpack(input)?;
+                Self::TestWithdraw(*val)
             }
             _ => return Err(ProgramError::InvalidAccountData),
         })
@@ -248,6 +265,11 @@ impl StakePoolInstruction {
             }
             Self::TestDeposit(val) => {
                 output[0] = 10;
+                let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
+                *value = *val;
+            }
+            Self::TestWithdraw(val) => {
+                output[0] = 11;
                 let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
                 *value = *val;
             }

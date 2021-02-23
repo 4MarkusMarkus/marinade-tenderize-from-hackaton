@@ -1,7 +1,3 @@
-/**
- * Hello world
- */
-
 import { Account, PublicKey, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import { TenderizeProgram } from './tenderize';
 import { Tester } from './tester';
@@ -28,12 +24,22 @@ async function main() {
       })
     }
   }
-  await tester.tenderize!.testDeposit({
-    amount: 100,
-    userWallet: tester.payerAccount,
-    stakePoolDepositAuthority: depositAuthotiry,
-    validators: await tester.getValidators()
-  });
+  if (true) {
+    await tester.tenderize!.testDeposit({
+      amount: 100,
+      userWallet: tester.payerAccount,
+      stakePoolDepositAuthority: depositAuthotiry,
+      validators: await tester.getValidators()
+    });
+  }
+  if (true) {
+    await tester.tenderize!.testWithdraw({
+      amount: 5,
+      userWallet: tester.payerAccount,
+      stakePoolWithdrawAuthority: withrdawAuthority,
+      validators: await tester.getValidators()
+    });
+  }
   /*
   await tester.tenderize!.deposit({
     stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly

@@ -357,6 +357,79 @@ impl Processor {
         Ok(())
     }
 
+    /// Withdraw from stakes
+    pub fn withdraw_from_validator_stakes<'b, 'a: 'b, I: Iterator<Item = &'b AccountInfo<'a>>>(
+        stake_program_info: &AccountInfo<'a>,
+        target_account_info: &AccountInfo<'a>,
+        source_accounts: I,
+        total_amount: &mut u64,
+        withdraw_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        deposit_withdraw_seeds: &[&[u8]],
+    ) -> Result<(), ProgramError> {
+        for source in source_accounts {
+            if *total_amount == 0 {
+                break;
+            }
+            let mut available_lamports: u64 = **(*source.lamports).borrow();
+            let stake_state: stake::StakeState =
+                deserialize(&source.data.borrow()).or_else(|_| {
+                    msg!("Error reading stake {} state", source.key);
+                    Err(ProgramError::InvalidAccountData)
+                })?;
+            match stake_state {
+                StakeState::Uninitialized => {
+                    msg!("Stake account {} is not initialized", source.key);
+                    return Err(StakePoolError::UserStakeNotActive.into());
+                }
+                StakeState::Initialized(meta) => {
+                    available_lamports -= meta.rent_exempt_reserve;
+                }
+                StakeState::Stake(
+                    meta,
+                    stake::Stake {
+                        delegation,
+                        credits_observed,
+                    },
+                ) => {
+                    available_lamports -= meta.rent_exempt_reserve;
+                    available_lamports -= delegation.stake;
+                    // TODO: fix available calculation
+                }
+                StakeState::RewardsPool => {
+                    msg!("Stake account {} is rewards pool. WTF?", source.key);
+                    return Err(StakePoolError::UserStakeNotActive.into());
+                }
+            }
+            let withdraw_lamports = u64::min(available_lamports, *total_amount);
+            if withdraw_lamports > 0 {
+                invoke_signed(
+                    &stake::withdraw(
+                        source.key,
+                        withdraw_info.key,
+                        target_account_info.key,
+                        withdraw_lamports,
+                        None,
+                    ),
+                    &[
+                        source.clone(),
+                        target_account_info.clone(),
+                        clock_info.clone(),
+                        stake_history_info.clone(),
+                        withdraw_info.clone(),
+                        stake_program_info.clone(),
+                    ],
+                    &[deposit_withdraw_seeds],
+                )?;
+
+                *total_amount -= withdraw_lamports;
+            }
+        }
+
+        Ok(())
+    }
+
     /// Processes `Initialize` instruction.
     pub fn process_initialize(
         program_id: &Pubkey,
@@ -1387,10 +1460,10 @@ impl Processor {
         let stake_program_info = next_account_info(account_info_iter)?;
         // Clock sysvar account
         let clock_info = next_account_info(account_info_iter)?;
-        let _clock = &Clock::from_account_info(clock_info)?;
+        // let _clock = &Clock::from_account_info(clock_info)?;
         // Stake history sysvar account
         let stake_history_info = next_account_info(account_info_iter)?;
-        let _stake_history = &StakeHistory::from_account_info(stake_history_info)?;
+        // let _stake_history = &StakeHistory::from_account_info(stake_history_info)?;
         // Stake config sysvar account
         let stake_config_info = next_account_info(account_info_iter)?;
 
@@ -1440,14 +1513,14 @@ impl Processor {
                             stake_delegator.stake_account_info.key,
                             stake_delegator.validator_vote_info.key
                         );
-                        return Err(ProgramError::InvalidArgument);
+                        return Err(StakePoolError::InvalidStakeAccountAddress.into());
                     }
                 } else {
                     msg!(
-                        "Unexpected validators account {}",
+                        "Unexpected validator account {}",
                         stake_delegator.validator_vote_info.key
                     );
-                    return Err(ProgramError::InvalidArgument);
+                    return Err(StakePoolError::ValidatorNotFound.into());
                 }
 
                 Ok(stake_delegator)
@@ -1478,6 +1551,89 @@ impl Processor {
         )?;
 
         // TODO: update stats
+
+        Ok(())
+    }
+
+    /// Process TestWithdraw
+    fn process_test_withdraw(
+        program_id: &Pubkey,
+        amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let withdraw_info = next_account_info(account_info_iter)?;
+        let user_wallet_info = next_account_info(account_info_iter)?;
+        let stake_program_info = next_account_info(account_info_iter)?;
+        // Clock sysvar account
+        let clock_info = next_account_info(account_info_iter)?;
+        // let _clock = &Clock::from_account_info(clock_info)?;
+        // Stake history sysvar account
+        let stake_history_info = next_account_info(account_info_iter)?;
+        // let _stake_history = &StakeHistory::from_account_info(stake_history_info)?;
+        let stake_accounts = account_info_iter.as_slice();
+
+        let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != stake_pool.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let mut validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        for stake in stake_accounts {
+            if !validator_stake_list.validators.iter().any(|validator| {
+                Self::find_stake_address_for_validator(
+                    program_id,
+                    &validator.validator_account,
+                    stake_pool_info.key,
+                )
+                .0 == *stake.key
+            }) {
+                msg!("Unexpected stake account {}", stake.key);
+                return Err(StakePoolError::InvalidStakeAccountAddress.into());
+            }
+        }
+
+        let withdraw_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_WITHDRAW,
+            &[stake_pool.withdraw_bump_seed],
+        ];
+
+        let mut amount_left = amount;
+        Self::withdraw_from_validator_stakes(
+            stake_program_info,
+            user_wallet_info,
+            stake_accounts.clone().into_iter(),
+            &mut amount_left,
+            withdraw_info,
+            clock_info,
+            stake_history_info,
+            withdraw_signer_seeds,
+        )?;
+
+        if amount_left > 0 {
+            msg!(
+                "Can be withdraw only {} of {} requested",
+                amount - amount_left,
+                amount
+            );
+            return Err(ProgramError::InsufficientFunds);
+        }
+
+        // TODO: update balance
 
         Ok(())
     }
@@ -1529,6 +1685,10 @@ impl Processor {
             StakePoolInstruction::TestDeposit(amount) => {
                 msg!("Instruction: TestDeposit {}", amount);
                 Self::process_test_deposit(program_id, amount, accounts)
+            }
+            StakePoolInstruction::TestWithdraw(amount) => {
+                msg!("Instruction: TestWithdraw {}", amount);
+                Self::process_test_withdraw(program_id, amount, accounts)
             }
         }
     }
