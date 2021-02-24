@@ -19,7 +19,16 @@ async function main() {
     }
   }
   if (true) {
-    await tester.tenderize!.depositReserve({
+    await tester.tenderize!.deposit({
+      userSource: tester.payerAccount,
+      amount: 10000,
+      userToken: tester.tenderize!.ownersFee, // All to my token
+      stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
+      reserve: new PublicKey('J5zPZnPwxxyV2vMSneQy4kasgteR1rHYEokfaa2G9DdQ'), // TODO calculate automaticaly
+    })
+  }
+  if (true) {
+    await tester.tenderize!.delegateReserve({
       amount: 1000000000, // 2282881 minimal for account creation
       reserve: tester.payerAccount, // TODO: make PDA
       stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly

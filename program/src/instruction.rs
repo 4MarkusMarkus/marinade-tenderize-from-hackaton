@@ -86,19 +86,15 @@ pub enum StakePoolInstruction {
     ///   into the pool. Inputs are converted to the current ratio.
     ///
     ///   0. `[w]` Stake pool
-    ///   1. `[w]` Validator stake list storage account
-    ///   2. `[]` Stake pool deposit authority
-    ///   3. `[]` Stake pool withdraw authority
-    ///   4. `[w]` Stake account to join the pool (withdraw should be set to stake pool deposit)
-    ///   5. `[w]` Validator stake account for the stake account to be merged with
-    ///   6. `[w]` User account to receive pool tokens
-    ///   7. `[w]` Account to receive pool fee tokens
-    ///   8. `[w]` Pool token mint account
-    ///   9. '[]' Sysvar clock account (required)
-    ///   10. '[]' Sysvar stake history account
-    ///   11. `[]` Pool token program id,
-    ///   12. `[]` Stake program id,
-    Deposit,
+    ///   1. `[]` Stake pool withdraw authority
+    ///   2. `[w]` Reserve account (PDA)
+    ///   3. `[ws]` User account to take SOLs from
+    ///   4. `[w]` User account to receive pool tokens
+    ///   5. `[w]` Account to receive pool fee tokens
+    ///   6. `[w]` Pool token mint account
+    ///   7. `[]` System program
+    ///   8. `[]` Pool token program id,
+    Deposit(u64),
 
     ///   7) Withdraw the token from the pool at the current ratio.
     ///   The amount withdrawn is the MIN(u64, stake size)
@@ -195,7 +191,10 @@ impl StakePoolInstruction {
             3 => Self::RemoveValidatorStakeAccount,
             4 => Self::UpdateListBalance,
             5 => Self::UpdatePoolBalance,
-            6 => Self::Deposit,
+            6 => {
+                let val: &u64 = unpack(input)?;
+                Self::Deposit(*val)
+            }
             7 => {
                 let val: &u64 = unpack(input)?;
                 Self::Withdraw(*val)
@@ -241,8 +240,10 @@ impl StakePoolInstruction {
             Self::UpdatePoolBalance => {
                 output[0] = 5;
             }
-            Self::Deposit => {
+            Self::Deposit(val) => {
                 output[0] = 6;
+                let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
+                *value = *val;
             }
             Self::Withdraw(val) => {
                 output[0] = 7;
@@ -285,7 +286,7 @@ pub fn unpack<T>(input: &[u8]) -> Result<&T, ProgramError> {
     let val: &T = unsafe { &*(&input[1] as *const u8 as *const T) };
     Ok(val)
 }
-
+/*
 /// Creates an 'initialize' instruction.
 pub fn initialize(
     program_id: &Pubkey,
@@ -315,7 +316,7 @@ pub fn initialize(
         data,
     })
 }
-/*
+
 /// Creates `AddValidatorStakeAccount` instruction (add new validator stake account to the pool)
 pub fn add_validator(
     program_id: &Pubkey,
@@ -421,7 +422,7 @@ pub fn update_pool_balance(
         data: StakePoolInstruction::UpdatePoolBalance.serialize()?,
     })
 }
-
+/*
 /// Creates a 'Deposit' instruction.
 pub fn deposit(
     program_id: &Pubkey,
@@ -460,7 +461,7 @@ pub fn deposit(
         data,
     })
 }
-
+*/
 /// Creates a 'withdraw' instruction.
 pub fn withdraw(
     program_id: &Pubkey,

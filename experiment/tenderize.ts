@@ -20,12 +20,11 @@ export interface AddValidatorParams {
 }
 
 export interface DepositParams {
-  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
+  userSource: Account,
+  amount: number,
+  userToken: PublicKey,
   stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
-  input: PublicKey,
-  validatorsStake: PublicKey,
-  outputTokenAccount: PublicKey,
-  feeTokenAccount: PublicKey,
+  reserve: PublicKey, // TODO calculate automaticaly
 }
 
 export interface TestDepositParams {
@@ -88,6 +87,11 @@ export class TenderizeProgram {
     return (await PublicKey.findProgramAddress([stakePool.toBuffer(), new TextEncoder().encode('withdraw')], stakePool))[0];
   }
   */
+
+  /*
+  async getReserveAccount(): Promise<PublicKey> {
+    return await PublicKey.createProgramAddress([this.stakePool.publicKey.toBuffer()], this.programId);
+  }*/
 
   async createStakePool(params: CreateStakePoolParams): Promise<void> {
     console.log(`Create stake pool ${this.stakePool.publicKey} with owners fee ${this.ownersFee}`);
@@ -181,6 +185,7 @@ export class TenderizeProgram {
   }
 
   async deposit(params: DepositParams) {
+    console.log(`Deposit ${params.amount}`);
     const transaction = new Transaction();
     transaction.add(this.depositInstruction(params));
     await sendAndConfirmTransaction(
@@ -194,24 +199,21 @@ export class TenderizeProgram {
   }
 
   depositInstruction(params: DepositParams) {
-    const data = Buffer.alloc(1);
+    const data = Buffer.alloc(1 + 8);
     let p = data.writeUInt8(6, 0);
+    p = data.writeBigInt64LE(BigInt(params.amount), p);
 
     return new TransactionInstruction({
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
         { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.input, isSigner: false, isWritable: true },
-        { pubkey: params.validatorsStake, isSigner: false, isWritable: true },
-        { pubkey: params.outputTokenAccount, isSigner: false, isWritable: true },
-        { pubkey: params.feeTokenAccount, isSigner: false, isWritable: true },
-        { pubkey: this.poolMintToken, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
+        { pubkey: params.reserve, isSigner: false, isWritable: true },
+        { pubkey: params.userSource.publicKey, isSigner: true, isWritable: true },
+        { pubkey: params.userToken, isSigner: false, isWritable: true },
+        { pubkey: this.ownersFee, isSigner: false, isWritable: true },
+        { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-        { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
       ],
       programId: this.programId,
       data,
@@ -317,9 +319,9 @@ export class TenderizeProgram {
     }
   */
 
-  async depositReserve(params: DepositReserveParams): Promise<void> {
+  async delegateReserve(params: DepositReserveParams): Promise<void> {
     const transaction = new Transaction();
-    transaction.add(await this.depositReserveInstruction(params));
+    transaction.add(await this.delegateReserveInstruction(params));
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
@@ -330,7 +332,7 @@ export class TenderizeProgram {
       });
   }
 
-  async depositReserveInstruction(params: DepositReserveParams) {
+  async delegateReserveInstruction(params: DepositReserveParams) {
     const data = Buffer.alloc(1 + 8);
     let p = data.writeUInt8(12, 0);
     p = data.writeBigUInt64LE(BigInt(params.amount), p);
@@ -348,7 +350,7 @@ export class TenderizeProgram {
       { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },];
 
-    console.log(`Deposit ${params.amount} from reserve into`);
+    console.log(`Delegate ${params.amount} from reserve into`);
     for (const validator of params.validators) {
       console.log(`Validator ${validator.toBase58()} with stakes`);
       keys.push({
