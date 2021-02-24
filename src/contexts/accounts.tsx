@@ -13,7 +13,7 @@ import { TokenAccount } from './../models';
 import { chunks } from './../utils/utils';
 import { EventEmitter } from './../utils/eventEmitter';
 import { useUserAccounts } from '../hooks/useUserAccounts';
-import { WRAPPED_SOL_MINT, programIds } from '../utils/ids';
+import { TENDERIZED_SOL_MINT_ID, programIds } from '../utils/ids';
 
 const AccountsContext = React.createContext<any>(null);
 
@@ -308,7 +308,7 @@ function wrapNativeAccount(
     pubkey: pubkey,
     account,
     info: {
-      mint: WRAPPED_SOL_MINT,
+      mint: TENDERIZED_SOL_MINT_ID,
       owner: pubkey,
       amount: new u64(account.lamports),
       delegate: null,
@@ -381,7 +381,7 @@ const precacheUserTokenAccounts = async (
 
   // user accounts are update via ws subscription
   const accounts = await connection.getTokenAccountsByOwner(owner, {
-    programId: programIds().token,
+    programId: programIds().tenderize,
   });
   accounts.value.forEach((info) => {
     cache.add(info.pubkey.toBase58(), info.account, TokenAccountParser);
@@ -445,7 +445,7 @@ export function AccountsProvider({ children = null as any }) {
       // TODO: web3.js expose ability to filter.
       // this should use only filter syntax to only get accounts that are owned by user
       const tokenSubID = connection.onProgramAccountChange(
-        programIds().token,
+        programIds().tenderize,
         (info) => {
           // TODO: fix type in web3.js
           const id = (info.accountId as unknown) as string;

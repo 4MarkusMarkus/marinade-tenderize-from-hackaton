@@ -1,32 +1,33 @@
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey } from '@solana/web3.js';
 
-export const WRAPPED_SOL_MINT = new PublicKey(
-  "So11111111111111111111111111111111111111112"
-);
-export let TOKEN_PROGRAM_ID = new PublicKey(
-  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+export const TENDERIZE_PROGRAM_ID = new PublicKey(
+  'YiLSwwu3yBwaSHoaAooERKNeQ64BSbRuv7wXTZ5Uprf'
 );
 
-export let LENDING_PROGRAM_ID = new PublicKey(
-  "TokenLending1111111111111111111111111111111"
+export const TENDERIZED_SOL_MINT_ID = new PublicKey(
+  'Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm'
 );
 
-export let SWAP_PROGRAM_ID = new PublicKey(
-  "SwaPpA9LAaLfeLi3a68M4DjnLqgtticKg6CnyNwgAC8"
+export let STAKE_POOL_ID = new PublicKey(
+  'DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'
+);
+
+export let VALIDATORS_LIST_ID = new PublicKey(
+  '7qaWgz27453E5CLPvcvGiLR2GobLPbKWsPmGDNQYRm6U'
 );
 
 export const PROGRAM_IDS = [
   {
-    name: "mainnet-beta",
+    name: 'mainnet-beta',
   },
   {
-    name: "testnet",
+    name: 'testnet',
   },
   {
-    name: "devnet",
+    name: 'devnet',
   },
   {
-    name: "localnet",
+    name: 'localnet',
   },
 ];
 
@@ -39,6 +40,6 @@ export const setProgramIds = (envName: string) => {
 
 export const programIds = () => {
   return {
-    token: TOKEN_PROGRAM_ID,
+    tenderize: TENDERIZE_PROGRAM_ID,
   };
 };
