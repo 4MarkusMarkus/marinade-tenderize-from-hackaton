@@ -1,9 +1,9 @@
-@import 'antd/dist/antd.less';
-@import './ant-custom.less';
+@import "antd/dist/antd.less";
+@import "./ant-custom.less";
 
 body {
   --row-highlight: @background-color-base;
-  font-family: 'Biryani';
+  font-family: "Biryani";
 }
 
 :root {
@@ -12,10 +12,56 @@ body {
   --primary: #4e66de;
   --primary-dark: #364699;
   --primary-transparent: #4e66de69;
+  --secondary-light: #a8b5ed;
   --font-color: #3f3d4b;
   --bg-top: #e7e8f0;
   --bg-left: #eaebf2;
   --bg: #f0f1f5;
+}
+
+#hammer {
+  animation: hammerMove 1.3s infinite;
+  position: absolute;
+  top: -20px;
+}
+#meat {
+  animation: meatMove 1.3s infinite;
+  position: absolute;
+  left: -50px;
+  top: 70px;
+}
+
+@keyframes hammerMove {
+  0% {
+    transform: rotate(0deg);
+    transform-origin: right;
+  }
+  5% {
+    transform: rotate(-40deg);
+    transform-origin: right;
+  }
+  100% {
+    transform: rotate(0deg);
+    transform-origin: right;
+  }
+}
+
+@keyframes meatMove {
+  0% {
+    transform: scaleX(1);
+  }
+  5% {
+    transform: scaleX(1);
+  }
+  10% {
+    transform: scaleX(1.1);
+  }
+  40% {
+    transform: scaleX(1.1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
 }
 
 .tenderButton {
@@ -44,6 +90,12 @@ body {
 .tenderButtonShade:hover {
   background-color: var(--primary-dark);
   color: white;
+  height: 40px;
+}
+.tenderButtonLight {
+  background-color: var(--secondary-light);
+  color: white;
+  width: 80%;
   height: 40px;
 }
 .ant-card-body {
@@ -75,14 +127,14 @@ body {
 }
 
 .title {
-  font-family: 'Biryani';
+  font-family: "Biryani";
   font-weight: 600;
   font-size: 40px;
   line-height: 60px;
   color: var(--font-color);
 }
 .subtext {
-  font-family: 'Biryani';
+  font-family: "Biryani";
   font-weight: 600;
   font-size: 20px;
   color: var(--font-color);
@@ -94,7 +146,7 @@ body {
 }
 
 p {
-  font-family: 'Biryani';
+  font-family: "Biryani";
   font-size: 22px;
   text-align: left;
   color: var(--font-color);
@@ -129,7 +181,7 @@ p {
 }
 
 .app-title {
-  font-family: 'Biryani';
+  font-family: "Biryani";
   font-style: normal;
   font-weight: 300;
   letter-spacing: 0px;
@@ -312,7 +364,7 @@ em {
   color: @text-color-secondary;
 }
 
-[class='ant-layout-header'] {
+[class="ant-layout-header"] {
   height: 16px !important;
 }
 

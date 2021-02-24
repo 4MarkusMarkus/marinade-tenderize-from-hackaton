@@ -12,6 +12,10 @@ const stakeHammer = require('../../img/stakeHammer.svg');
 const potionHero = require('../../img/potionHero.svg');
 const friends = require('../../img/friends.svg');
 const solanaLogo = require('../../img/solanaLogo.svg');
+const polygonLogo = require("../../img/polygonDark.svg");
+const keepLogo = require("../../img/keep.svg")
+const hammer = require("../../img/hammer.svg");
+const meat = require("../../img/meat.svg");
 
 export const HomeView = () => {
   const { marketEmitter, midPriceInUSD } = useMarkets();
@@ -47,13 +51,14 @@ export const HomeView = () => {
       <Col
         span={24}
         style={{
-          height: '90vh',
+          marginTop:"90px",
+          height: '80vh',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'column',
+          alignItems:'center'
         }}
       >
-        <div>
+        
           <h2 className='title' style={{ marginTop: '1em', marginBottom: 0 }}>
             The easiest way to stake your tokens
           </h2>
@@ -69,8 +74,10 @@ export const HomeView = () => {
             </span>
             to chew. */}
           </h3>
-          <img width='150' src={stakeHammer} alt='logo' />
-        </div>
+          <div style={{position: "relative"}}>
+            <img id="meat" width="100" src={meat} alt="logo" />
+            <img id="hammer" width="130" src={hammer} alt="logo" />
+          </div>
       </Col>
       <Col
         span={22}
@@ -82,7 +89,23 @@ export const HomeView = () => {
         }}
       >
         <Card className='card' style={{ width: '30%' }}>
-          Balance: {balance}
+        <div style={{
+                height: "100%",
+                display: "flex", 
+                flexDirection:"column", 
+                justifyContent:"space-between",
+                alignItems:'center'}}>
+              <div>
+                <img src={polygonLogo} alt="polygon logo" style={{maxWidth:"70%"}}/>
+                <h2 className="subtext" style={{marginTop:"5px"}}>POLYGON</h2>
+              </div>
+              <div style={{marginTop: "5px", marginBottom:"5px"}}>
+                <h2 className="title" style={{marginBottom: 0}}>10.2%</h2>
+                <h3 style={{marginBottom: 0}}>Vault Rewards</h3>
+                <h5>(projected APY)</h5>
+              </div>
+                <ConnectButton className="tenderButton tenderButtonLight">Coming Soon</ConnectButton>
+            </div>
         </Card>
         <Card className='card' style={{ width: '30%', height: '100%' }}>
           <div
@@ -98,7 +121,7 @@ export const HomeView = () => {
               <img
                 src={solanaLogo}
                 alt='solana logo'
-                style={{ maxWidth: '30%' }}
+                style={{ maxWidth: '70%' }}
               />
               <h2 className='subtext' style={{ marginTop: '5px' }}>
                 SOLANA
@@ -123,7 +146,26 @@ export const HomeView = () => {
               </Link> */}
           </div>
         </Card>
-        <Card className='card' style={{ width: '30%' }}></Card>
+        <Card className='card' style={{ width: '30%' }}>
+        <div style={{
+                height: "100%",
+                display: "flex", 
+                flexDirection:"column", 
+                justifyContent:"space-between",
+                alignItems:'center'
+                }}>
+              <div>
+                <img src={keepLogo} alt="keep logo" style={{maxWidth:"100%"}}/>
+                <h2 className="subtext" style={{marginTop:"5px"}}>KEEP</h2>
+              </div>
+              <div style={{marginTop: "5px", marginBottom:"5px"}}>
+                <h2 className="title" style={{marginBottom: 0}}>9.8%</h2>
+                <h3 style={{marginBottom: 0}}>Vault Rewards</h3>
+                <h5>(projected APY)</h5>
+              </div>
+              <ConnectButton className="tenderButton tenderButtonLight">Coming Soon</ConnectButton>
+            </div>
+        </Card>
       </Col>
       <Col span={10} offset={2}>
         <div style={{ marginTop: '100px', marginBottom: '70px' }}>
