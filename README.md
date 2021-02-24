@@ -11,7 +11,7 @@
 
 ### Run application on localnet
 
-1. Initialize local cluster with `npm localnet:up`
+1. Initialize local cluster with `npm run localnet:up`
 3. Drop some SOLs to the testing account `solana airdrop 100`
 3. Build & deploy the program `npm run build:program`
 
@@ -20,6 +20,6 @@
 1. `cd experiments`
 2. `npm i`
 3. Create sample staking and validator accounts `npm run prepare:env`
-4. `npm start` - if you see that `ts-node` is missing, install it with `npm i -g ts-node`
+4. `npm run start` - if you see that `ts-node` is missing, install it with `npm i -g ts-node`
 
 You can reset the environment by removing the container with `npm run localnet:down` and then repeat the whole process again.
