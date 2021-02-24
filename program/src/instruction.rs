@@ -161,6 +161,22 @@ pub enum StakePoolInstruction {
     ///   6. `[]` Stake history sysvar that carries stake warmup/cooldown history
     ///   7..7+N `[w]` N stake accounts
     TestWithdraw(u64),
+
+    ///   12) Delegate reserve to stake account
+    ///
+    ///   0.  `[w]` StakePool
+    ///   1.  `[w]` Validator stake list storage account
+    ///   2.  `[]` Stake pool withdraw authority
+    ///   3.  `[]` Stake pool deposit authority
+    ///   4.  `[ws]` SOL reserve account
+    ///   5.  `[]` System program
+    ///   6.  `[]` Stake program
+    ///   7.  `[]` Clock sysvar
+    ///   8.  `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   9.  `[]` Address of config account that carries stake config
+    ///   10. `[]` Rent sysvar
+    ///   11. ..11+6N ` [w]*6 N times validator + 5 stake accounts
+    DelegateReserve(u64),
 }
 
 impl StakePoolInstruction {
@@ -193,6 +209,10 @@ impl StakePoolInstruction {
             11 => {
                 let val: &u64 = unpack(input)?;
                 Self::TestWithdraw(*val)
+            }
+            12 => {
+                let val: &u64 = unpack(input)?;
+                Self::DelegateReserve(*val)
             }
             _ => return Err(ProgramError::InvalidAccountData),
         })
@@ -242,6 +262,11 @@ impl StakePoolInstruction {
                 *value = *val;
             }
             Self::TestWithdraw(val) => {
+                output[0] = 11;
+                let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
+                *value = *val;
+            }
+            Self::DelegateReserve(val) => {
                 output[0] = 11;
                 let value = unsafe { &mut *(&mut output[1] as *mut u8 as *mut u64) };
                 *value = *val;

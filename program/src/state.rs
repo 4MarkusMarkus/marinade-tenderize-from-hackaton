@@ -207,6 +207,8 @@ impl StakePool {
 
 /// Max validator count
 pub const MAX_VALIDATORS: usize = 1000;
+/// epochs for delegation
+pub const EPOCHS_FOR_DELEGATION: usize = 4;
 
 /// Storage list for all validator stake accounts in the pool.
 #[repr(C)]

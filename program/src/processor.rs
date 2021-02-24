@@ -1,12 +1,12 @@
 //! Program state processor
 
-use std::str::FromStr;
+use std::{convert::TryInto, str::FromStr};
 
 use crate::{
     error::StakePoolError,
     instruction::{InitArgs, StakePoolInstruction},
     stake,
-    state::{StakePool, ValidatorStakeInfo, ValidatorStakeList},
+    state::{StakePool, ValidatorStakeInfo, ValidatorStakeList, EPOCHS_FOR_DELEGATION},
     PROGRAM_VERSION,
 };
 use bincode::deserialize;
@@ -25,16 +25,465 @@ use solana_program::{
     pubkey::Pubkey,
     rent::Rent,
     stake_history::StakeHistory,
-    system_instruction,
+    system_instruction, system_program,
     sysvar::Sysvar,
 };
 use spl_token::state::Mint;
 use stake::StakeState;
 
-/// Pair validator with its stake
-pub struct ValidatorStakeDelegator<'a> {
-    stake_account_info: AccountInfo<'a>,
+struct ValidatorStakeDelegator<'a> {
     validator_vote_info: AccountInfo<'a>,
+    stake_accounts_with_seeds: Vec<(AccountInfo<'a>, u8)>,
+    validator_index: usize,
+}
+
+impl<'a> ValidatorStakeDelegator<'a> {
+    pub(crate) const ACCOUNT_COUNT: usize = EPOCHS_FOR_DELEGATION + 2;
+
+    pub(crate) fn from_accounts(
+        validator_stake_list: &ValidatorStakeList,
+        program_id: &Pubkey,
+        stake_pool: &Pubkey,
+        accounts: &[AccountInfo<'a>],
+    ) -> Result<Self, ProgramError> {
+        if accounts.len() != EPOCHS_FOR_DELEGATION + 2 {
+            return Err(ProgramError::NotEnoughAccountKeys);
+        }
+
+        let (validator_vote_info, stake_accounts_info) = accounts.split_first().unwrap();
+
+        let mut stake_accounts_with_seeds = Vec::with_capacity(EPOCHS_FOR_DELEGATION + 1);
+
+        if let Some((validator_index, validator)) = validator_stake_list
+            .validators
+            .iter()
+            .enumerate()
+            .find(|(_, validator)| *validator_vote_info.key == validator.validator_account)
+        {
+            for stake_index in 0..(EPOCHS_FOR_DELEGATION + 1) {
+                let expected_stake =
+                    validator.stake_address(program_id, stake_pool, stake_index as u8);
+                if *stake_accounts_info[stake_index].key == expected_stake.0 {
+                    stake_accounts_with_seeds
+                        .push((stake_accounts_info[stake_index].clone(), expected_stake.1));
+                } else {
+                    msg!(
+                        "Invalid {} stake account {} for validator {}",
+                        stake_index,
+                        stake_accounts_info[stake_index].key,
+                        validator_vote_info.key
+                    );
+                    msg!("Expected {}", expected_stake.0);
+                    return Err(StakePoolError::InvalidStakeAccountAddress.into());
+                }
+            }
+
+            Ok(Self {
+                validator_vote_info: validator_vote_info.clone(),
+                stake_accounts_with_seeds,
+                validator_index,
+            })
+        } else {
+            msg!("Unexpected validator account {}", validator_vote_info.key);
+            Err(StakePoolError::ValidatorNotFound.into())
+        }
+    }
+
+    fn current_epoch_stake_index(
+        &self,
+        clock: &Clock,
+        stake_history: &StakeHistory,
+    ) -> Result<Option<usize>, ProgramError> {
+        for index in 0..self.stake_accounts_with_seeds.len() {
+            let stake_account_info = &self.stake_accounts_with_seeds[index].0;
+            if *stake_account_info.owner == stake::id() {
+                let stake_state: stake::StakeState = deserialize(
+                    &self.stake_accounts_with_seeds[index].0.data.borrow(),
+                )
+                .or_else(|_| {
+                    msg!(
+                        "Error reading stake {} state",
+                        self.stake_accounts_with_seeds[index].0.key
+                    );
+                    Err(ProgramError::InvalidAccountData)
+                })?;
+                match stake_state {
+                    StakeState::Stake(
+                        _meta,
+                        stake::Stake {
+                            delegation,
+                            credits_observed: _,
+                        },
+                    ) => {
+                        if delegation
+                            .stake_activating_and_deactivating(
+                                clock.epoch,
+                                Some(stake_history),
+                                true,
+                            )
+                            .0
+                            == 0
+                        {
+                            return Ok(Some(index));
+                        }
+                    }
+                    _ => return Err(StakePoolError::WrongStakeState.into()),
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    fn free_stake_index(&self) -> Option<usize> {
+        self.stake_accounts_with_seeds
+            .iter()
+            .position(|(stake_account_info, _)| *stake_account_info.owner == system_program::id())
+    }
+
+    fn init_stake(
+        &self,
+        validator_stake_info: &mut ValidatorStakeInfo,
+        stake_pool: &Pubkey,
+        index: usize,
+        lamports: u64,
+        funder_info: &AccountInfo<'a>,
+        deposit_info: &AccountInfo<'a>,
+        withdraw_info: &AccountInfo<'a>,
+        stake_program_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        stake_config_info: &AccountInfo<'a>,
+        rent_info: &AccountInfo<'a>,
+        rent: &Rent,
+        deposit_signer_seeds: &[&[u8]],
+    ) -> Result<u64, ProgramError> {
+        // Fund the associated token account with at least the minimum balance to be rent exempt
+        let lamports =
+            lamports.max(1 + rent.minimum_balance(std::mem::size_of::<stake::StakeState>()));
+
+        let (stake_account_info, _stake_bump_seed) = &self.stake_accounts_with_seeds[index];
+
+        let stake_signer_seeds = &[
+            &self.validator_vote_info.key.to_bytes()[..32],
+            &stake_pool.to_bytes()[..32],
+            &[index as u8],
+            &[self.stake_accounts_with_seeds[index as usize].1],
+        ];
+
+        msg!(
+            "Init stake #{} {} with {} balance",
+            index,
+            stake_account_info.key,
+            lamports
+        );
+
+        // Create new stake account
+        invoke_signed(
+            &system_instruction::create_account(
+                &funder_info.key,
+                &stake_account_info.key,
+                lamports,
+                std::mem::size_of::<stake::StakeState>() as u64,
+                &stake::id(),
+            ),
+            &[funder_info.clone(), stake_account_info.clone()],
+            &[stake_signer_seeds],
+        )?;
+
+        invoke(
+            &stake::initialize(
+                &stake_account_info.key,
+                &stake::Authorized {
+                    staker: *deposit_info.key,
+                    withdrawer: *withdraw_info.key,
+                },
+                &stake::Lockup::default(),
+            ),
+            &[
+                stake_account_info.clone(),
+                rent_info.clone(),
+                stake_program_info.clone(),
+            ],
+        )?;
+
+        invoke_signed(
+            &stake::delegate_stake(
+                &stake_account_info.key,
+                deposit_info.key,
+                self.validator_vote_info.key,
+            ),
+            &[
+                stake_account_info.clone(),
+                deposit_info.clone(),
+                self.validator_vote_info.clone(),
+                clock_info.clone(),
+                stake_history_info.clone(),
+                stake_config_info.clone(),
+                stake_program_info.clone(),
+            ],
+            &[&deposit_signer_seeds],
+        )?;
+
+        validator_stake_info.balance += lamports;
+
+        Ok(lamports)
+    }
+
+    fn delegate_to_the_current_epoch_stake(
+        &self,
+        validator_stake_info: &mut ValidatorStakeInfo,
+        index: usize,
+        lamports: u64,
+        funder_info: &AccountInfo<'a>,
+        deposit_info: &AccountInfo<'a>,
+        system_program_info: &AccountInfo<'a>,
+        stake_program_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        stake_config_info: &AccountInfo<'a>,
+        deposit_signer_seeds: &[&[u8]],
+    ) -> Result<(), ProgramError> {
+        msg!(
+            "Redelegate stake #{} {} with {} more lamports",
+            index,
+            &self.stake_accounts_with_seeds[index].0.key,
+            lamports
+        );
+
+        invoke(
+            &system_instruction::transfer(
+                funder_info.key,
+                &self.stake_accounts_with_seeds[index].0.key,
+                lamports,
+            ),
+            &[
+                funder_info.clone(),
+                self.stake_accounts_with_seeds[index].0.clone(),
+                system_program_info.clone(),
+            ],
+        )?;
+
+        // Redelegate
+        invoke_signed(
+            &stake::delegate_stake(
+                &self.stake_accounts_with_seeds[index].0.key,
+                deposit_info.key,
+                self.validator_vote_info.key,
+            ),
+            &[
+                self.stake_accounts_with_seeds[index].0.clone(),
+                deposit_info.clone(),
+                self.validator_vote_info.clone(),
+                clock_info.clone(),
+                stake_history_info.clone(),
+                stake_config_info.clone(),
+                stake_program_info.clone(),
+            ],
+            &[deposit_signer_seeds],
+        )?;
+
+        validator_stake_info.balance += lamports;
+
+        Ok(())
+    }
+
+    fn next_full_stake(
+        &self,
+        starting_index: usize,
+        clock: &Clock,
+        stake_history: &StakeHistory,
+    ) -> Result<Option<(usize, u64)>, ProgramError> {
+        for index in starting_index..self.stake_accounts_with_seeds.len() {
+            let stake_account_info = &self.stake_accounts_with_seeds[index].0;
+            if *stake_account_info.owner == stake::id() {
+                let stake_state: stake::StakeState = deserialize(
+                    &self.stake_accounts_with_seeds[index].0.data.borrow(),
+                )
+                .or_else(|_| {
+                    msg!(
+                        "Error reading stake {} state",
+                        self.stake_accounts_with_seeds[index].0.key
+                    );
+                    Err(ProgramError::InvalidAccountData)
+                })?;
+                match stake_state {
+                    StakeState::Stake(
+                        _,
+                        stake::Stake {
+                            delegation,
+                            credits_observed,
+                        },
+                    ) => {
+                        let (_effective, activating, deactivating) = delegation
+                            .stake_activating_and_deactivating(
+                                clock.epoch,
+                                Some(stake_history),
+                                true,
+                            );
+                        if activating == 0 && deactivating == 0 {
+                            return Ok(Some((index, credits_observed)));
+                        }
+                    }
+                    _ => return Err(StakePoolError::WrongStakeState.into()),
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    fn merge_full_stakes(
+        &self,
+        main_index: usize,
+        additional_index: usize,
+        deposit_info: &AccountInfo<'a>,
+        stake_program_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        deposit_signer_seeds: &[&[u8]],
+    ) -> Result<(), ProgramError> {
+        msg!(
+            "Merge stake #{} {}",
+            main_index,
+            self.stake_accounts_with_seeds[main_index].0.key
+        );
+        msg!(
+            " with stake #{} {}",
+            additional_index,
+            self.stake_accounts_with_seeds[additional_index].0.key
+        );
+        invoke_signed(
+            &stake::merge(
+                self.stake_accounts_with_seeds[main_index].0.key,
+                self.stake_accounts_with_seeds[additional_index].0.key,
+                deposit_info.key,
+            ),
+            &[
+                self.stake_accounts_with_seeds[main_index].0.clone(),
+                self.stake_accounts_with_seeds[additional_index].0.clone(),
+                clock_info.clone(),
+                stake_history_info.clone(),
+                deposit_info.clone(),
+                stake_program_info.clone(),
+            ],
+            &[deposit_signer_seeds],
+        )
+    }
+
+    fn merge_all_full_stakes(
+        &self,
+        deposit_info: &AccountInfo<'a>,
+        stake_program_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        deposit_signer_seeds: &[&[u8]],
+        clock: &Clock,
+        stake_history: &StakeHistory,
+    ) -> Result<(), ProgramError> {
+        if let Some((main_index, main_credits_observed)) =
+            self.next_full_stake(0, clock, stake_history)?
+        {
+            let mut start = main_index + 1;
+            while let Some((additional_index, additional_credits_observed)) =
+                self.next_full_stake(start, clock, stake_history)?
+            {
+                if main_credits_observed == additional_credits_observed {
+                    self.merge_full_stakes(
+                        main_index,
+                        additional_index,
+                        deposit_info,
+                        stake_program_info,
+                        clock_info,
+                        stake_history_info,
+                        deposit_signer_seeds,
+                    )?;
+                } else {
+                    msg!(
+                        "Cannot merge stakes #{} {}: {} credits observed",
+                        main_index,
+                        self.stake_accounts_with_seeds[main_index].0.key,
+                        main_credits_observed
+                    );
+                    msg!(
+                        " with stake #{} {}: {} credits observed",
+                        additional_index,
+                        self.stake_accounts_with_seeds[additional_index].0.key,
+                        additional_credits_observed
+                    );
+                }
+                start = additional_index + 1;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn delegate(
+        &self,
+        validator_stake_info: &mut ValidatorStakeInfo,
+        stake_pool: &Pubkey,
+        lamports: u64,
+        funder_info: &AccountInfo<'a>,
+        deposit_info: &AccountInfo<'a>,
+        withdraw_info: &AccountInfo<'a>,
+        system_program_info: &AccountInfo<'a>,
+        stake_program_info: &AccountInfo<'a>,
+        clock_info: &AccountInfo<'a>,
+        stake_history_info: &AccountInfo<'a>,
+        stake_config_info: &AccountInfo<'a>,
+        rent_info: &AccountInfo<'a>,
+        rent: &Rent,
+        deposit_signer_seeds: &[&[u8]],
+        clock: &Clock,
+        stake_history: &StakeHistory,
+    ) -> Result<u64, ProgramError> {
+        self.merge_all_full_stakes(
+            deposit_info,
+            stake_program_info,
+            clock_info,
+            stake_history_info,
+            deposit_signer_seeds,
+            clock,
+            stake_history,
+        )?;
+
+        if let Some(index) = self.current_epoch_stake_index(clock, stake_history)? {
+            self.delegate_to_the_current_epoch_stake(
+                validator_stake_info,
+                index,
+                lamports,
+                funder_info,
+                deposit_info,
+                system_program_info,
+                stake_program_info,
+                clock_info,
+                stake_history_info,
+                stake_config_info,
+                deposit_signer_seeds,
+            )?;
+            return Ok(lamports);
+        }
+
+        if let Some(index) = self.free_stake_index() {
+            self.init_stake(
+                validator_stake_info,
+                stake_pool,
+                index,
+                lamports,
+                funder_info,
+                deposit_info,
+                withdraw_info,
+                stake_program_info,
+                clock_info,
+                stake_history_info,
+                stake_config_info,
+                rent_info,
+                rent,
+                deposit_signer_seeds,
+            )
+        } else {
+            panic!("Stake manager error: stake line overflow. Probably delegation is too slow!");
+        }
+    }
 }
 
 /// Program state handler.
@@ -251,6 +700,7 @@ impl Processor {
         invoke_signed(&ix, &[mint, destination, authority, token_program], signers)
     }
 
+    /*
     /// Transfer SOLs from user into stake accounts
     pub fn transfer_to_validator_stakes<
         'b,
@@ -382,7 +832,7 @@ impl Processor {
         }
 
         Ok(())
-    }
+    }*/
 
     /// Processes `Initialize` instruction.
     pub fn process_initialize(
@@ -1518,6 +1968,150 @@ impl Processor {
         Ok(())
     }*/
 
+    /// Process DelegateReserve
+    pub fn process_delegate_reserve(
+        program_id: &Pubkey,
+        amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let withdraw_info = next_account_info(account_info_iter)?;
+        let deposit_info = next_account_info(account_info_iter)?;
+        let reserve_account_info = next_account_info(account_info_iter)?;
+        let system_program_info = next_account_info(account_info_iter)?;
+        // Staking program id
+        let stake_program_info = next_account_info(account_info_iter)?;
+        // Clock sysvar account
+        let clock_info = next_account_info(account_info_iter)?;
+        let clock = &Clock::from_account_info(clock_info)?;
+        // Stake history sysvar account
+        let stake_history_info = next_account_info(account_info_iter)?;
+        let stake_history = &StakeHistory::from_account_info(stake_history_info)?;
+        // Stake config sysvar account
+        let stake_config_info = next_account_info(account_info_iter)?;
+        // Rent sysvar account
+        let rent_info = next_account_info(account_info_iter)?;
+        let rent = &Rent::from_account_info(rent_info)?;
+
+        let validator_stake_accounts = account_info_iter
+            .as_slice()
+            .chunks(ValidatorStakeDelegator::ACCOUNT_COUNT);
+
+        let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != stake_pool.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let mut validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        let validator_stake_delegators = validator_stake_accounts
+            .map(|accounts| {
+                ValidatorStakeDelegator::from_accounts(
+                    &validator_stake_list,
+                    program_id,
+                    stake_pool_info.key,
+                    accounts,
+                )
+            })
+            .collect::<Result<Vec<_>, ProgramError>>()?;
+
+        stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
+
+        let deposit_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_DEPOSIT,
+            &[stake_pool.deposit_bump_seed],
+        ];
+
+        // TODO: Actual rent amount
+        let available_lamports =
+            **reserve_account_info.lamports.borrow() - rent.minimum_balance(100);
+        if available_lamports < amount {
+            msg!(
+                "Requested to delegate {} lamports but reserve has only {}",
+                amount,
+                available_lamports
+            );
+            return Err(ProgramError::InsufficientFunds);
+        }
+
+        let stake_total: u64 = validator_stake_delegators
+            .iter()
+            .map(|delegator| validator_stake_list.validators[delegator.validator_index].balance)
+            .sum();
+
+        let target_amount =
+            (stake_total + amount + (validator_stake_list.validators.len() as u64 - 1))
+                / validator_stake_list.validators.len() as u64;
+
+        let mut amount_left = amount;
+        let mut changed = false;
+        for delegator in validator_stake_delegators {
+            if amount_left == 0 {
+                break;
+            }
+
+            let mut validator = validator_stake_list.validators[delegator.validator_index];
+            if validator.balance >= target_amount {
+                continue;
+            }
+            let delegate_amount = amount_left.min(target_amount - validator.balance);
+            let actually_delegated_amount = delegator.delegate(
+                &mut validator,
+                stake_pool_info.key,
+                delegate_amount,
+                reserve_account_info,
+                deposit_info,
+                withdraw_info,
+                system_program_info,
+                stake_program_info,
+                clock_info,
+                stake_history_info,
+                stake_config_info,
+                rent_info,
+                rent,
+                deposit_signer_seeds,
+                clock,
+                stake_history,
+            )?;
+            changed = true;
+            msg!(
+                "Validator {} delegation requested: {} actual: {}",
+                delegator.validator_vote_info.key,
+                delegate_amount,
+                actually_delegated_amount
+            );
+
+            amount_left = amount_left.saturating_sub(actually_delegated_amount);
+        }
+        if amount_left > 0 {
+            msg!("Error in math");
+            return Err(ProgramError::Custom(u32::max_value()));
+        }
+
+        if changed {
+            validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+
+            // Only update stake total if the last state update epoch is current
+            stake_pool.stake_total += amount;
+            stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
+        }
+
+        Ok(())
+    }
+
     /// Processes [Instruction](enum.Instruction.html).
     pub fn process(program_id: &Pubkey, accounts: &[AccountInfo], input: &[u8]) -> ProgramResult {
         let instruction = StakePoolInstruction::deserialize(input)?;
@@ -1565,6 +2159,10 @@ impl Processor {
             StakePoolInstruction::TestWithdraw(amount) => {
                 panic!("Instruction: TestWithdraw {}", amount);
                 // Self::process_test_withdraw(program_id, amount, accounts)
+            }
+            StakePoolInstruction::DelegateReserve(amount) => {
+                msg!("Instruction: DelegateReserve {}", amount);
+                Self::process_delegate_reserve(program_id, amount, accounts)
             }
         }
     }

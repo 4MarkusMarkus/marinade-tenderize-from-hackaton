@@ -9,14 +9,26 @@ async function main() {
   const withrdawAuthority = new PublicKey("5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg");
   const depositAuthotiry = new PublicKey("9EVGoPwR9TLrxnuAqhLgk5hBkJY9ogbeUyUu83vqsYki");
 
+  const validators = await tester.getValidators();
   if (true) {
     await tester.createStakePool();
-    for (const validator of await tester.getValidators()) {
+    for (const validator of validators) {
       await tester.tenderize!.addValidator({
         validator,
       })
     }
   }
+  if (true) {
+    await tester.tenderize!.depositReserve({
+      amount: 1000000000, // 2282881 minimal for account creation
+      reserve: tester.payerAccount, // TODO: make PDA
+      stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly
+      stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
+      validators
+    })
+  }
+
+  /*
   if (false) {
     await tester.tenderize!.testDeposit({
       amount: 100,
@@ -32,7 +44,7 @@ async function main() {
       stakePoolWithdrawAuthority: withrdawAuthority,
       validators: await tester.getValidators()
     });
-  }
+  }*/
   /*
   await tester.tenderize!.deposit({
     stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly
