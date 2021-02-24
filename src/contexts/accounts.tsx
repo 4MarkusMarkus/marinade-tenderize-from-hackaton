@@ -1,19 +1,19 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
-import { useConnection } from "./connection";
-import { useWallet } from "./wallet";
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { useConnection } from './connection';
+import { useWallet } from './wallet';
 import {
   AccountInfo,
   ConfirmedSignatureInfo,
   ConfirmedTransaction,
   Connection,
   PublicKey,
-} from "@solana/web3.js";
-import { AccountLayout, u64, MintInfo, MintLayout } from "@solana/spl-token";
-import { TokenAccount } from "./../models";
-import { chunks } from "./../utils/utils";
-import { EventEmitter } from "./../utils/eventEmitter";
-import { useUserAccounts } from "../hooks/useUserAccounts";
-import { WRAPPED_SOL_MINT, programIds } from "../utils/ids";
+} from '@solana/web3.js';
+import { AccountLayout, u64, MintInfo, MintLayout } from '@solana/spl-token';
+import { TokenAccount } from './../models';
+import { chunks } from './../utils/utils';
+import { EventEmitter } from './../utils/eventEmitter';
+import { useUserAccounts } from '../hooks/useUserAccounts';
+import { WRAPPED_SOL_MINT, programIds } from '../utils/ids';
 
 const AccountsContext = React.createContext<any>(null);
 
@@ -47,7 +47,7 @@ export interface ParsedAccount<T> extends ParsedAccountBase {
 const getMintInfo = async (connection: Connection, pubKey: PublicKey) => {
   const info = await connection.getAccountInfo(pubKey);
   if (info === null) {
-    throw new Error("Failed to find mint account");
+    throw new Error('Failed to find mint account');
   }
 
   const data = Buffer.from(info.data);
@@ -116,7 +116,7 @@ export const cache = {
     parser?: AccountParser
   ) => {
     let id: PublicKey;
-    if (typeof pubKey === "string") {
+    if (typeof pubKey === 'string') {
       id = new PublicKey(pubKey);
     } else {
       id = pubKey;
@@ -137,7 +137,7 @@ export const cache = {
     // TODO: refactor to use multiple accounts query with flush like behavior
     query = connection.getAccountInfo(id).then((data) => {
       if (!data) {
-        throw new Error("Account not found");
+        throw new Error('Account not found');
       }
 
       return cache.add(id, data, parser);
@@ -155,11 +155,11 @@ export const cache = {
       return;
     }
 
-    const address = typeof id === "string" ? id : id?.toBase58();
+    const address = typeof id === 'string' ? id : id?.toBase58();
     const deserialize = parser ? parser : keyToAccountParser.get(address);
     if (!deserialize) {
       throw new Error(
-        "Deserializer needs to be registered or passed as a parameter"
+        'Deserializer needs to be registered or passed as a parameter'
       );
     }
 
@@ -178,7 +178,7 @@ export const cache = {
   },
   get: (pubKey: string | PublicKey) => {
     let key: string;
-    if (typeof pubKey !== "string") {
+    if (typeof pubKey !== 'string') {
       key = pubKey.toBase58();
     } else {
       key = pubKey;
@@ -188,7 +188,7 @@ export const cache = {
   },
   delete: (pubKey: string | PublicKey) => {
     let key: string;
-    if (typeof pubKey !== "string") {
+    if (typeof pubKey !== 'string') {
       key = pubKey.toBase58();
     } else {
       key = pubKey;
@@ -214,7 +214,7 @@ export const cache = {
   },
   registerParser: (pubkey: PublicKey | string, parser: AccountParser) => {
     if (pubkey) {
-      const address = typeof pubkey === "string" ? pubkey : pubkey?.toBase58();
+      const address = typeof pubkey === 'string' ? pubkey : pubkey?.toBase58();
       keyToAccountParser.set(address, parser);
     }
 
@@ -222,7 +222,7 @@ export const cache = {
   },
   queryMint: async (connection: Connection, pubKey: string | PublicKey) => {
     let id: PublicKey;
-    if (typeof pubKey === "string") {
+    if (typeof pubKey === 'string') {
       id = new PublicKey(pubKey);
     } else {
       id = pubKey;
@@ -251,7 +251,7 @@ export const cache = {
   },
   getMint: (pubKey: string | PublicKey) => {
     let key: string;
-    if (typeof pubKey !== "string") {
+    if (typeof pubKey !== 'string') {
       key = pubKey.toBase58();
     } else {
       key = pubKey;
@@ -459,7 +459,7 @@ export function AccountsProvider({ children = null as any }) {
             }
           }
         },
-        "singleGossip"
+        'singleGossip'
       );
 
       return () => {
@@ -510,7 +510,7 @@ export const getMultipleAccounts = async (
             const { data, ...rest } = acc;
             const obj = {
               ...rest,
-              data: Buffer.from(data[0], "base64"),
+              data: Buffer.from(data[0], 'base64'),
             } as AccountInfo<Buffer>;
             return obj;
           })
@@ -525,12 +525,12 @@ const getMultipleAccountsCore = async (
   keys: string[],
   commitment: string
 ) => {
-  const args = connection._buildArgs([keys], commitment, "base64");
+  const args = connection._buildArgs([keys], commitment, 'base64');
 
-  const unsafeRes = await connection._rpcRequest("getMultipleAccounts", args);
+  const unsafeRes = await connection._rpcRequest('getMultipleAccounts', args);
   if (unsafeRes.error) {
     throw new Error(
-      "failed to get info about account " + unsafeRes.error.message
+      'failed to get info about account ' + unsafeRes.error.message
     );
   }
 
@@ -547,7 +547,7 @@ export function useMint(key?: string | PublicKey) {
   const connection = useConnection();
   const [mint, setMint] = useState<MintInfo>();
 
-  const id = typeof key === "string" ? key : key?.toBase58();
+  const id = typeof key === 'string' ? key : key?.toBase58();
 
   useEffect(() => {
     if (!id) {
@@ -665,7 +665,7 @@ const deserializeAccount = (data: Buffer) => {
 // TODO: expose in spl package
 const deserializeMint = (data: Buffer) => {
   if (data.length !== MintLayout.span) {
-    throw new Error("Not a valid Mint");
+    throw new Error('Not a valid Mint');
   }
 
   const mintInfo = MintLayout.decode(data);

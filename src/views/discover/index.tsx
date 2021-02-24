@@ -1,6 +1,10 @@
 import React from 'react';
-import { Button, Card, Tabs, InputNumber } from 'antd';
+// import { useLendingReserve } from '../../hooks';
+// import { useParams } from 'react-router-dom';
 // import { Link } from 'react-router-dom';
+
+// import { DepositInput } from '../../components/DepositInput';
+import { Button, Card, Tabs, InputNumber } from 'antd';
 import { Line } from 'react-chartjs-2';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
@@ -23,6 +27,16 @@ export const DiscoverView = () => {
       },
     ],
   };
+
+  // const { id } = useParams<{ id: string }>();
+  // const lendingReserve = useLendingReserve(
+  //   'DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'
+  // );
+  // const reserve = lendingReserve?.info;
+
+  // if (!reserve || !lendingReserve) {
+  //   return null;
+  // }
 
   return (
     <div
@@ -125,6 +139,11 @@ export const DiscoverView = () => {
                 <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
+              {/* <DepositInput
+                className='card-fill'
+                reserve={reserve}
+                address={lendingReserve.pubkey}
+              /> */}
               <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
               <span> SOL</span>
               <br />
