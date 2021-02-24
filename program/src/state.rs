@@ -209,6 +209,8 @@ impl StakePool {
 pub const MAX_VALIDATORS: usize = 1000;
 /// epochs for delegation
 pub const EPOCHS_FOR_DELEGATION: usize = 4;
+/// Minimum stake account balance
+pub const MIN_STAKE_ACCOUNT_BALANCE: u64 = 1000000000; // 1 SOL
 
 /// Storage list for all validator stake accounts in the pool.
 #[repr(C)]

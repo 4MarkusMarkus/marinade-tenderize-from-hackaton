@@ -6,7 +6,10 @@ use crate::{
     error::StakePoolError,
     instruction::{InitArgs, StakePoolInstruction},
     stake,
-    state::{StakePool, ValidatorStakeInfo, ValidatorStakeList, EPOCHS_FOR_DELEGATION},
+    state::{
+        StakePool, ValidatorStakeInfo, ValidatorStakeList, EPOCHS_FOR_DELEGATION,
+        MIN_STAKE_ACCOUNT_BALANCE,
+    },
     PROGRAM_VERSION,
 };
 use bincode::deserialize;
@@ -156,10 +159,11 @@ impl<'a> ValidatorStakeDelegator<'a> {
         rent_info: &AccountInfo<'a>,
         rent: &Rent,
         deposit_signer_seeds: &[&[u8]],
-    ) -> Result<u64, ProgramError> {
+    ) -> Result<(), ProgramError> {
         // Fund the associated token account with at least the minimum balance to be rent exempt
-        let lamports =
-            lamports.max(1 + rent.minimum_balance(std::mem::size_of::<stake::StakeState>()));
+        if lamports < 1 + rent.minimum_balance(std::mem::size_of::<stake::StakeState>()) {
+            return Err(ProgramError::InsufficientFunds);
+        }
 
         let (stake_account_info, _stake_bump_seed) = &self.stake_accounts_with_seeds[index];
 
@@ -226,7 +230,7 @@ impl<'a> ValidatorStakeDelegator<'a> {
 
         validator_stake_info.balance += lamports;
 
-        Ok(lamports)
+        Ok(())
     }
 
     fn delegate_to_the_current_epoch_stake(
@@ -435,7 +439,7 @@ impl<'a> ValidatorStakeDelegator<'a> {
         deposit_signer_seeds: &[&[u8]],
         clock: &Clock,
         stake_history: &StakeHistory,
-    ) -> Result<u64, ProgramError> {
+    ) -> Result<(), ProgramError> {
         self.merge_all_full_stakes(
             deposit_info,
             stake_program_info,
@@ -460,7 +464,7 @@ impl<'a> ValidatorStakeDelegator<'a> {
                 stake_config_info,
                 deposit_signer_seeds,
             )?;
-            return Ok(lamports);
+            return Ok(());
         }
 
         if let Some(index) = self.free_stake_index() {
@@ -2010,7 +2014,7 @@ impl Processor {
         }
 
         // Read validator stake list account and check if it is valid
-        let mut validator_stake_list =
+        let validator_stake_list =
             ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
         if !validator_stake_list.is_initialized() {
             return Err(StakePoolError::InvalidState.into());
@@ -2035,9 +2039,17 @@ impl Processor {
             &[stake_pool.deposit_bump_seed],
         ];
 
+        if amount < MIN_STAKE_ACCOUNT_BALANCE {
+            msg!(
+                "Minimal amount for delegation is {} but requested amount is {}",
+                MIN_STAKE_ACCOUNT_BALANCE,
+                amount,
+            );
+            return Err(ProgramError::InsufficientFunds); // TODO: better error
+        }
         // TODO: Actual rent amount
-        let available_lamports =
-            **reserve_account_info.lamports.borrow() - rent.minimum_balance(100);
+        let available_lamports = **reserve_account_info.lamports.borrow()
+            - rent.minimum_balance(reserve_account_info.data.borrow().len());
         if available_lamports < amount {
             msg!(
                 "Requested to delegate {} lamports but reserve has only {}",
@@ -2057,7 +2069,6 @@ impl Processor {
                 / validator_stake_list.validators.len() as u64;
 
         let mut amount_left = amount;
-        let mut changed = false;
         for delegator in validator_stake_delegators {
             if amount_left == 0 {
                 break;
@@ -2067,8 +2078,13 @@ impl Processor {
             if validator.balance >= target_amount {
                 continue;
             }
-            let delegate_amount = amount_left.min(target_amount - validator.balance);
-            let actually_delegated_amount = delegator.delegate(
+            let mut delegate_amount = amount_left.min(target_amount - validator.balance);
+            amount_left -= delegate_amount;
+            if amount_left < MIN_STAKE_ACCOUNT_BALANCE {
+                delegate_amount += amount_left;
+                amount_left = 0;
+            }
+            delegator.delegate(
                 &mut validator,
                 stake_pool_info.key,
                 delegate_amount,
@@ -2086,28 +2102,17 @@ impl Processor {
                 clock,
                 stake_history,
             )?;
-            changed = true;
-            msg!(
-                "Validator {} delegation requested: {} actual: {}",
-                delegator.validator_vote_info.key,
-                delegate_amount,
-                actually_delegated_amount
-            );
-
-            amount_left = amount_left.saturating_sub(actually_delegated_amount);
         }
         if amount_left > 0 {
             msg!("Error in math");
             return Err(ProgramError::Custom(u32::max_value()));
         }
 
-        if changed {
-            validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+        validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
 
-            // Only update stake total if the last state update epoch is current
-            stake_pool.stake_total += amount;
-            stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
-        }
+        // Only update stake total if the last state update epoch is current
+        stake_pool.stake_total += amount;
+        stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
 
         Ok(())
     }
