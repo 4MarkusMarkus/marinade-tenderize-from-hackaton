@@ -1324,6 +1324,7 @@ impl Processor {
             {
                 // ? if validator_stake_record.last_update_epoch >= clock.epoch
                 validator_stake_record.balance = 0;
+                let mut new_stake_count = 0u32;
                 for index in 0..validator_stake_record.stake_count {
                     let stake_account_info = next_account_info(account_info_iter)?;
                     validator_stake_record.check_validator_stake_address(
@@ -1333,9 +1334,14 @@ impl Processor {
                         stake_account_info.key,
                     )?;
                     // ? check stake_account_owner
-                    validator_stake_record.balance += **stake_account_info.lamports.borrow();
+                    let balance = **stake_account_info.lamports.borrow();
+                    if balance > 0 {
+                        validator_stake_record.balance += balance;
+                        new_stake_count = index + 1;
+                    }
                 }
 
+                validator_stake_record.stake_count = new_stake_count;
                 validator_stake_record.last_update_epoch = clock.epoch;
                 changes = true;
             } else {
@@ -1431,6 +1437,9 @@ impl Processor {
         let owner_fee_info = next_account_info(account_info_iter)?;
         // Pool token mint account
         let pool_mint_info = next_account_info(account_info_iter)?;
+        // Rent sysvar account
+        let rent_info = next_account_info(account_info_iter)?;
+        let rent = &Rent::from_account_info(rent_info)?;
         // System program id
         let system_program_info = next_account_info(account_info_iter)?;
         // Pool token program id
@@ -1466,6 +1475,10 @@ impl Processor {
         if stake_pool.last_update_epoch < clock.epoch {
             return Err(StakePoolError::StakeListAndPoolOutOfDate.into());
         }*/
+
+        if !rent.is_exempt(**reserve_info.lamports.borrow() + amount, 0) {
+            return Err(StakePoolError::FirstDepositIsTooSmall.into());
+        }
 
         let pool_amount = stake_pool
             .calc_pool_deposit_amount(amount)
@@ -2090,7 +2103,7 @@ impl Processor {
         let stake_config_info = next_account_info(account_info_iter)?;
         // Rent sysvar account
         let rent_info = next_account_info(account_info_iter)?;
-        // let rent = &Rent::from_account_info(rent_info)?;
+        let rent = &Rent::from_account_info(rent_info)?;
 
         let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
         if !stake_pool.is_initialized() {
@@ -2134,6 +2147,7 @@ impl Processor {
             &[reserve_bump],
         ];
 
+        let lamports_available = **reserve_account_info.lamports.borrow() - rent.minimum_balance(0);
         let mut total_amount = 0;
         for instruction in instructions {
             let validator_vote_info = next_account_info(account_info_iter)?;
@@ -2144,6 +2158,10 @@ impl Processor {
                 .iter_mut()
                 .find(|validator| *validator_vote_info.key == validator.validator_account)
             {
+                if total_amount + instruction.amount > lamports_available {
+                    return Err(ProgramError::InsufficientFunds);
+                }
+
                 let stake_bump_seed = validator.check_validator_stake_address(
                     program_id,
                     stake_pool_info.key,
@@ -2203,7 +2221,7 @@ impl Processor {
 
         validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
 
-        // Only update stake total if the last state update epoch is current
+        // ? Only update stake total if the last state update epoch is current
         stake_pool.stake_total += total_amount;
         stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
 
@@ -2300,6 +2318,7 @@ impl PrintProgramError for StakePoolError {
             StakePoolError::WrongMintingAuthority => msg!("Error: Wrong minting authority set for mint pool account"),
             StakePoolError::AccountNotRentExempt => msg!("Error: Account is not rent-exempt"),
             StakePoolError::ValidatorListOverflow => msg!("Error: Validator list is full. Can't add more validators"),
+            StakePoolError::FirstDepositIsTooSmall => msg!("Error: First deposit must be at least enough for rent"),
         }
     }
 }

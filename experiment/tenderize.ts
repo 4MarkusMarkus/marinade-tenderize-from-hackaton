@@ -241,6 +241,7 @@ export class TenderizeProgram {
         { pubkey: params.userToken, isSigner: false, isWritable: true },
         { pubkey: this.ownersFee, isSigner: false, isWritable: true },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ],

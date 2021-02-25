@@ -76,6 +76,9 @@ pub enum StakePoolError {
     /// Validator list is full. Can't add more validators
     #[error("ValidatorListOverflow")]
     ValidatorListOverflow,
+    /// First deposit must be greater than empty account rent
+    #[error("FirstDepositIsTooSmall")]
+    FirstDepositIsTooSmall,
 }
 impl From<StakePoolError> for ProgramError {
     fn from(e: StakePoolError) -> Self {

@@ -102,8 +102,9 @@ pub enum StakePoolInstruction {
     ///   4. `[w]` User account to receive pool tokens
     ///   5. `[w]` Account to receive pool fee tokens
     ///   6. `[w]` Pool token mint account
-    ///   7. `[]` System program
-    ///   8. `[]` Pool token program id,
+    ///   7. `[]` Rent sysvar
+    ///   8. `[]` System program
+    ///   9. `[]` Pool token program id,
     Deposit(u64),
 
     ///   7) Withdraw the token from the pool at the current ratio.
