@@ -28,13 +28,7 @@ async function main() {
     })
   }
   if (true) {
-    await tester.tenderize!.delegateReserve({
-      amount: 1000000000, // 2282881 minimal for account creation
-      reserve: tester.payerAccount, // TODO: make PDA
-      stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly
-      stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
-      validators
-    })
+    await tester.tenderize!.delegateReserveBatch(10000000000, tester.payerAccount, depositAuthotiry, withrdawAuthority);
   }
 
   /*

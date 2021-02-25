@@ -3,6 +3,14 @@ import {
 } from '@solana/web3.js';
 
 const SPL_TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const MIN_STAKE_ACCOUNT_BALANCE = 1000000000;
+
+export interface ValidatorInfo {
+  votePubkey: PublicKey,
+  balance: number,
+  lastUpdateEpoch: number,
+  stakeCount: number
+}
 
 export interface CreateStakePoolParams {
   feeDenominator: number,
@@ -41,12 +49,17 @@ export interface TestWithdrawParams {
   validators: PublicKey[]
 }
 
-export interface DepositReserveParams {
+export interface DepositReserveValidatorParam {
+  address: PublicKey,
   amount: number,
+  stakeIndex: number
+}
+
+export interface DepositReserveParams {
   reserve: Account, // TODO: make PDA
   stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
   stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
-  validators: PublicKey[]
+  validators: DepositReserveValidatorParam[]
 }
 
 export class TenderizeProgram {
@@ -148,9 +161,29 @@ export class TenderizeProgram {
   }
 
   async getStakeForValidator(validator: PublicKey, index: number) {
-    const indexBuffer = Buffer.alloc(1);
-    indexBuffer.writeUInt8(index, 0);
+    const indexBuffer = Buffer.alloc(4);
+    indexBuffer.writeUInt32LE(index, 0);
     return (await PublicKey.findProgramAddress([validator.toBuffer(), this.stakePool.publicKey.toBuffer(), indexBuffer], this.programId))[0];
+  }
+
+  async readState() {
+    const stateAccount = await this.connection.getAccountInfo(this.stakePool.publicKey, 'singleGossip');
+
+  }
+
+  async readValidators(): Promise<ValidatorInfo[]> {
+    const validatorListAccount = await this.connection.getAccountInfo(this.validatorStakeListAccount.publicKey, 'singleGossip');
+    const validatorCount = validatorListAccount!.data.readUInt16LE(1);
+    const validators: ValidatorInfo[] = []
+    for (let i = 0; i < validatorCount; ++i) {
+      validators.push({
+        votePubkey: new PublicKey(validatorListAccount!.data.slice(3 + (32 + 8 + 8 + 4) * i, 3 + (32 + 8 + 8 + 4) * i + 32)),
+        balance: Number(validatorListAccount!.data.readBigUInt64LE(3 + (32 + 8 + 8 + 4) * i + 32)),
+        lastUpdateEpoch: Number(validatorListAccount!.data.readBigUInt64LE(3 + (32 + 8 + 8 + 4) * i + 32 + 8)),
+        stakeCount: validatorListAccount!.data.readUInt32LE(3 + (32 + 8 + 8 + 4) * i + 32 + 8 + 8),
+      })
+    }
+    return validators;
   }
 
   async addValidator(params: AddValidatorParams) {
@@ -333,9 +366,9 @@ export class TenderizeProgram {
   }
 
   async delegateReserveInstruction(params: DepositReserveParams) {
-    const data = Buffer.alloc(1 + 8);
+    const data = Buffer.alloc(1 + 4 + (8 + 8) * params.validators.length);
     let p = data.writeUInt8(12, 0);
-    p = data.writeBigUInt64LE(BigInt(params.amount), p);
+    p = data.writeUInt32LE(params.validators.length, p);
 
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
@@ -350,24 +383,24 @@ export class TenderizeProgram {
       { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },
       { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },];
 
-    console.log(`Delegate ${params.amount} from reserve into`);
+    console.log(`Delegate from reserve into`);
     for (const validator of params.validators) {
-      console.log(`Validator ${validator.toBase58()} with stakes`);
+      p = data.writeBigUInt64LE(BigInt(validator.amount), p);
+      p = data.writeBigUInt64LE(BigInt(validator.stakeIndex), p);
+
       keys.push({
-        pubkey: validator,
+        pubkey: validator.address,
         isSigner: false,
         isWritable: false
       })
 
-      for (let index = 0; index < 5; index++) {
-        const stake = await this.getStakeForValidator(validator, index);
-        console.log(stake.toBase58());
-        keys.push({
-          pubkey: stake,
-          isSigner: false,
-          isWritable: true
-        });
-      }
+      const stake = await this.getStakeForValidator(validator.address, validator.stakeIndex);
+      console.log(`Validator ${validator.address.toBase58()} with stake #${validator.stakeIndex} ${stake.toBase58()}`);
+      keys.push({
+        pubkey: stake,
+        isSigner: false,
+        isWritable: true
+      });
     }
 
     return new TransactionInstruction({
@@ -375,5 +408,87 @@ export class TenderizeProgram {
       programId: this.programId,
       data,
     });
+  }
+
+  async delegateReserveBatch(
+    totalAmount: number,
+    reserve: Account, // TODO: make PDA
+    stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
+    stakePoolWithdrawAuthority: PublicKey,) {
+    if (totalAmount < MIN_STAKE_ACCOUNT_BALANCE) {
+      throw Error("Too low delegation");
+    }
+
+    const validators = await this.readValidators();
+    const stakeTotal = validators.map((v) => v.balance).reduce((a, b) => a + b, 0);
+    const targetAmount = Math.ceil((stakeTotal + totalAmount) / validators.length);
+
+    const instructions: DepositReserveValidatorParam[] = [];
+    let amountLeft = totalAmount;
+    for (const validator of validators) {
+      if (amountLeft < 1) {
+        break;
+      }
+
+      if (validator.balance >= targetAmount) {
+        continue;
+      }
+
+      let delegateAmount = Math.min(targetAmount - validator.balance, amountLeft);
+
+      amountLeft -= delegateAmount;
+
+      if (amountLeft < MIN_STAKE_ACCOUNT_BALANCE) {
+        delegateAmount += amountLeft;
+        amountLeft = 0;
+      }
+
+      let currentEpochStakeIndex = -1;
+      for (let index = 0; index < validator.stakeCount; index++) {
+        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, index);
+        const stakeData = await this.connection.getStakeActivation(stakeAddress, 'singleGossip');
+        if ((stakeData.state == 'activating') && (stakeData.active == 0)) {
+          currentEpochStakeIndex = index;
+          break;
+        }
+      }
+
+      if (currentEpochStakeIndex >= 0) {
+        console.log(`Redelegate to stake #${currentEpochStakeIndex} ${await this.getStakeForValidator(validator.votePubkey, currentEpochStakeIndex)}`);
+        instructions.push({
+          address: validator.votePubkey,
+          amount: delegateAmount,
+          stakeIndex: currentEpochStakeIndex
+        });
+        continue;
+      }
+
+      let firstFreeIndex = validator.stakeCount;
+      for (let index = 0; index < validator.stakeCount; index++) {
+        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, index);
+        const stakeAccount = await this.connection.getAccountInfo(stakeAddress);
+        if (!stakeAccount || (stakeAccount.owner == SystemProgram.programId)) {
+          firstFreeIndex = index;
+        }
+      }
+
+      console.log(`Init stake #${firstFreeIndex} ${await this.getStakeForValidator(validator.votePubkey, firstFreeIndex)}`);
+      instructions.push({
+        address: validator.votePubkey,
+        amount: delegateAmount,
+        stakeIndex: firstFreeIndex
+      });
+    }
+
+    if (amountLeft > 0) {
+      throw Error(`Left ${amountLeft}`);
+    }
+
+    await this.delegateReserve({
+      reserve,
+      stakePoolDepositAuthority,
+      stakePoolWithdrawAuthority,
+      validators: instructions
+    })
   }
 }

@@ -2,12 +2,12 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use solana_program::instruction::AccountMeta;
 use solana_program::instruction::Instruction;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::sysvar;
-use std::mem::size_of;
+use solana_program::{instruction::AccountMeta, msg};
+use std::mem::{self, size_of};
 
 /// Fee rate as a ratio
 /// Fee is minted on deposit
@@ -27,7 +27,15 @@ pub struct InitArgs {
     /// Fee paid to the owner in pool tokens
     pub fee: Fee,
 }
-
+/// Delegate Reserve Instruction
+#[repr(C)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct DelegateReserveInstruction {
+    /// amount to delegate
+    pub amount: u64,
+    /// stake index
+    pub stake_index: u64,
+}
 /// Instructions supported by the StakePool program.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
@@ -172,7 +180,7 @@ pub enum StakePoolInstruction {
     ///   9.  `[]` Address of config account that carries stake config
     ///   10. `[]` Rent sysvar
     ///   11. ..11+6N ` [w]*6 N times validator + 5 stake accounts
-    DelegateReserve(u64),
+    DelegateReserve(Vec<DelegateReserveInstruction>),
 }
 
 impl StakePoolInstruction {
@@ -210,13 +218,31 @@ impl StakePoolInstruction {
                 Self::TestWithdraw(*val)
             }
             12 => {
-                let val: &u64 = unpack(input)?;
-                Self::DelegateReserve(*val)
+                let count: &u32 = unpack(input)?;
+                if input.len()
+                    < 1 + 4 + *count as usize * mem::size_of::<DelegateReserveInstruction>()
+                {
+                    msg!(
+                        "Expeced size to be {} but got {} sizeof = {}",
+                        1 + 4 + *count as usize * mem::size_of::<DelegateReserveInstruction>(),
+                        input.len(),
+                        mem::size_of::<DelegateReserveInstruction>()
+                    );
+                    return Err(ProgramError::InvalidArgument);
+                }
+                let instructions = unsafe {
+                    std::slice::from_raw_parts(
+                        &input[1 + 4] as *const u8 as *const DelegateReserveInstruction,
+                        *count as usize,
+                    )
+                };
+                Self::DelegateReserve(instructions.to_vec())
             }
             _ => return Err(ProgramError::InvalidAccountData),
         })
     }
 
+    /*
     /// Serializes an [StakePoolInstruction](enum.StakePoolInstruction.html) into a byte buffer.
     /// TODO efficient packing here
     pub fn serialize(&self) -> Result<Vec<u8>, ProgramError> {
@@ -274,7 +300,7 @@ impl StakePoolInstruction {
             }
         }
         Ok(output)
-    }
+    }*/
 }
 
 /// Unpacks a reference from a bytes buffer.
@@ -350,7 +376,7 @@ pub fn add_validator(
         accounts,
         data: StakePoolInstruction::AddValidatorStakeAccount.serialize()?,
     })
-}*/
+}
 
 /// Creates `RemoveValidatorStakeAccount` instruction (remove validator stake account from the pool)
 pub fn remove_validator_stake_account(
@@ -549,3 +575,4 @@ pub fn set_owner(
         data,
     })
 }
+*/

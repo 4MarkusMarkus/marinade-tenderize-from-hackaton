@@ -207,8 +207,6 @@ impl StakePool {
 
 /// Max validator count
 pub const MAX_VALIDATORS: usize = 1000;
-/// epochs for delegation
-pub const EPOCHS_FOR_DELEGATION: usize = 4;
 /// Minimum stake account balance
 pub const MIN_STAKE_ACCOUNT_BALANCE: u64 = 1000000000; // 1 SOL
 
@@ -234,6 +232,9 @@ pub struct ValidatorStakeInfo {
 
     /// Last epoch balance field was updated
     pub last_update_epoch: u64,
+
+    /// Stake account count
+    pub stake_count: u32,
 }
 
 impl ValidatorStakeList {
@@ -356,21 +357,17 @@ impl ValidatorStakeInfo {
     }
 
     /// Stake account address for validator
-    /// index = 0                     - fully activated stake
-    /// index = 1                     - 1 epoch before activation
-    /// ...
-    /// index = EPOCHS_FOR_DELEGATION - initialized stake
     pub fn stake_address(
         &self,
         program_id: &Pubkey,
         stake_pool: &Pubkey,
-        index: u8,
+        index: u32,
     ) -> (Pubkey, u8) {
         Pubkey::find_program_address(
             &[
                 &self.validator_account.to_bytes()[..32],
                 &stake_pool.to_bytes()[..32],
-                &[index],
+                &unsafe { std::mem::transmute::<u32, [u8; 4]>(index) },
             ],
             program_id,
         )
@@ -381,7 +378,7 @@ impl ValidatorStakeInfo {
         &self,
         program_id: &Pubkey,
         stake_pool: &Pubkey,
-        index: u8,
+        index: u32,
         stake_account_info: &AccountInfo,
     ) -> bool {
         // Check stake account address validity
