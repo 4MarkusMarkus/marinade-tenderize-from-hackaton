@@ -987,6 +987,10 @@ impl Processor {
             return Err(StakePoolError::WrongMintingAuthority.into());
         }
 
+        if pool_mint.supply > 0 {
+            return Err(StakePoolError::MintHasInitialSupply.into());
+        }
+
         // change credit reserve owner to PDA
         invoke(
             &spl_token::instruction::set_authority(
@@ -2308,6 +2312,7 @@ impl PrintProgramError for StakePoolError {
                 msg!("Error: Validator stake account is not found in the list storage")
             }
             StakePoolError::WrongMintingAuthority => msg!("Error: Wrong minting authority set for mint pool account"),
+            StakePoolError::MintHasInitialSupply => msg!("Error: Initial supply of mint is non zero"),
             StakePoolError::AccountNotRentExempt => msg!("Error: Account is not rent-exempt"),
             StakePoolError::ValidatorListOverflow => msg!("Error: Validator list is full. Can't add more validators"),
             StakePoolError::FirstDepositIsTooSmall => msg!("Error: First deposit must be at least enough for rent"),

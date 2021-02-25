@@ -70,6 +70,9 @@ pub enum StakePoolError {
     /// Wrong minting authority set for mint pool account
     #[error("WrongMintingAuthority")]
     WrongMintingAuthority,
+    /// Mint has initial supply
+    #[error("MintHasInitialSupply")]
+    MintHasInitialSupply,
     /// Account is not rent-exempt
     #[error("AccountNotRentExempt")]
     AccountNotRentExempt,
