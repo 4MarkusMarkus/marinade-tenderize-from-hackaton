@@ -108,19 +108,17 @@ pub enum StakePoolInstruction {
     Deposit(u64),
 
     ///   7) Withdraw the token from the pool at the current ratio.
-    ///   The amount withdrawn is the MIN(u64, stake size)
     ///
     ///   0. `[w]` Stake pool
-    ///   1. `[w]` Validator stake list storage account
-    ///   2. `[]` Stake pool withdraw authority
-    ///   3. `[w]` Validator stake account to split
-    ///   4. `[w]` Unitialized stake account to receive withdrawal
-    ///   5. `[]` User account to set as a new withdraw authority
-    ///   6. `[w]` User account with pool tokens to burn from
-    ///   7. `[w]` Pool token mint account
-    ///   8. '[]' Sysvar clock account (required)
+    ///   1. `[]` Stake pool withdraw authority
+    ///   2. `[w]` Reserve account (PDA)
+    ///   3. `[w]` User account with pool tokens to burn from
+    ///   4. `[s]` Burn authority
+    ///   5. `[w]` Pool token mint account
+    ///   6. `[w]` Target to SOL transfer
+    ///   7. `[]` Rent sysvar
+    ///   8. `[]` System program
     ///   9. `[]` Pool token program id
-    ///   10. `[]` Stake program id,
     ///   userdata: amount to withdraw
     Withdraw(u64),
 

@@ -432,16 +432,19 @@ mod test {
                     validator_account: Pubkey::new_from_array([1; 32]),
                     balance: 123456789,
                     last_update_epoch: 987654321,
+                    stake_count: 0,
                 },
                 ValidatorStakeInfo {
                     validator_account: Pubkey::new_from_array([2; 32]),
                     balance: 998877665544,
                     last_update_epoch: 11223445566,
+                    stake_count: 0,
                 },
                 ValidatorStakeInfo {
                     validator_account: Pubkey::new_from_array([3; 32]),
                     balance: 0,
                     last_update_epoch: 999999999999999,
+                    stake_count: 0,
                 },
             ],
         };

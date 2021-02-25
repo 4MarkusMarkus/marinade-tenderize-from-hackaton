@@ -18,11 +18,13 @@ import { TenderizeProgram } from './tenderize';
 export class Tester {
   connection: Connection;
   payerAccount: Account;
+  userTokenAccount: Account;
   tenderize?: TenderizeProgram;
 
-  private constructor(connection: Connection, payerAccount: Account) {
+  private constructor(connection: Connection, payerAccount: Account, userTokenAccount: Account) {
     this.connection = connection;
     this.payerAccount = payerAccount;
+    this.userTokenAccount = userTokenAccount;
   }
 
   async initTenderize() {
@@ -150,7 +152,7 @@ export class Tester {
       'Sol to pay for fees',
     );
 
-    return new Tester(connection, payerAccount!);
+    return new Tester(connection, payerAccount!, await Tester.loadAccount("user_tokens"));
   }
 
   async getValidators() {

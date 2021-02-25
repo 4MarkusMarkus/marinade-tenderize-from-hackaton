@@ -31,6 +31,12 @@ export interface DepositParams {
   userToken: PublicKey,
 }
 
+export interface WithdrawParams {
+  userTokenSource: PublicKey,
+  amount: number,
+  userSolTarget: PublicKey,
+}
+
 export interface TestDepositParams {
   amount: number,
   userWallet: Account,
@@ -241,6 +247,42 @@ export class TenderizeProgram {
         { pubkey: params.userToken, isSigner: false, isWritable: true },
         { pubkey: this.ownersFee, isSigner: false, isWritable: true },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+        { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async withdraw(params: WithdrawParams) {
+    console.log(`Withdraw ${params.amount}`);
+    const transaction = new Transaction();
+    transaction.add(await this.withdrawInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
+  }
+
+  async withdrawInstruction(params: WithdrawParams) {
+    const data = Buffer.alloc(1 + 8);
+    let p = data.writeUInt8(7, 0);
+    p = data.writeBigInt64LE(BigInt(params.amount), p);
+
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+        { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
+        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
+        { pubkey: params.userTokenSource, isSigner: false, isWritable: true },
+        { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+        { pubkey: params.userSolTarget, isSigner: false, isWritable: true },
         { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },

@@ -1,6 +1,7 @@
-import { Account, PublicKey, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { Account, PublicKey, sendAndConfirmTransaction, SystemInstruction, SystemProgram, Transaction } from '@solana/web3.js';
 import { TenderizeProgram } from './tenderize';
 import { Tester } from './tester';
+import { execShellCommand } from './util/shell';
 
 async function main() {
   const tester = await Tester.build();
@@ -19,7 +20,17 @@ async function main() {
     await tester.tenderize!.deposit({
       userSource: tester.payerAccount,
       amount: 100000000000,
-      userToken: tester.tenderize!.ownersFee, // All to my token
+      userToken: tester.userTokenAccount.publicKey,
+    })
+  }
+
+  if (true) {
+    await execShellCommand(`spl-token approve ${tester.userTokenAccount.publicKey} 1 ${await (await tester.tenderize!.getWithdrawAuthority()).toBase58()}`)
+
+    await tester.tenderize!.withdraw({
+      userTokenSource: tester.userTokenAccount.publicKey,
+      amount: 1000000000,
+      userSolTarget: tester.payerAccount.publicKey,
     })
   }
   if (true) {
