@@ -78,16 +78,18 @@ pub enum StakePoolInstruction {
 
     ///   4) Updates balances of validator stake accounts in the pool
     ///   
-    ///   0. `[w]` Validator stake list storage account
-    ///   1. `[]` Sysvar clock account
-    ///   2. ..2+N ` [] N validator stake accounts to update balances
+    ///   0. `[]` Stake pool
+    ///   1. `[w]` Validator stake list storage account
+    ///   2. `[]` Sysvar clock account
+    ///   3. ..3+N ` [] (validator + all stakes) repeated
     UpdateListBalance,
 
     ///   5) Updates total pool balance based on balances in validator stake account list storage
     ///
     ///   0. `[w]` Stake pool
     ///   1. `[]` Validator stake list storage account
-    ///   2. `[]` Sysvar clock account
+    ///   2. `[]` Reserve account PDA
+    ///   3. `[]` Sysvar clock account
     UpdatePoolBalance,
 
     ///   6) Deposit some stake into the pool.  The output is a "pool" token representing ownership

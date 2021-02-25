@@ -25,6 +25,9 @@ async function main() {
   if (true) {
     await tester.tenderize!.delegateReserveBatch(10000000000);
   }
+  if (true) {
+    await tester.tenderize!.updatePool();
+  }
 
   console.log('Success');
 }

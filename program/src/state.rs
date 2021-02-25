@@ -5,7 +5,7 @@ use crate::instruction::Fee;
 use crate::processor::Processor;
 use core::convert::TryInto;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
+    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
     pubkey::Pubkey,
 };
 use std::convert::TryFrom;
@@ -374,16 +374,27 @@ impl ValidatorStakeInfo {
     }
 
     /// Checks if validator stake account is a proper program address
-    pub fn is_validator_stake_address(
+    pub fn check_validator_stake_address(
         &self,
         program_id: &Pubkey,
         stake_pool: &Pubkey,
         index: u32,
-        stake_account_info: &AccountInfo,
-    ) -> bool {
+        stake_account_pubkey: &Pubkey,
+    ) -> Result<u8, ProgramError> {
         // Check stake account address validity
-        let (stake_address, _) = self.stake_address(&program_id, &stake_pool, index);
-        stake_address == *stake_account_info.key
+        let (expected_stake_address, bump_seed) =
+            self.stake_address(&program_id, &stake_pool, index);
+        if *stake_account_pubkey != expected_stake_address {
+            msg!(
+                "Invalid {} stake account {} for validator {}",
+                index,
+                stake_account_pubkey,
+                self.validator_account
+            );
+            msg!("Expected {}", expected_stake_address);
+            return Err(StakePoolError::InvalidStakeAccountAddress.into());
+        }
+        Ok(bump_seed)
     }
 }
 

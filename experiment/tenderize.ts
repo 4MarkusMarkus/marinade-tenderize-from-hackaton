@@ -53,6 +53,10 @@ export interface DepositReserveParams {
   validators: DepositReserveValidatorParam[]
 }
 
+export interface UpdateListBalanceParams {
+  validators: PublicKey[]
+}
+
 export class TenderizeProgram {
   connection: Connection;
   payerAccount: Account;
@@ -475,5 +479,99 @@ export class TenderizeProgram {
     await this.delegateReserve({
       validators: instructions
     })
+  }
+
+  async updateListBalanceReserve(params: UpdateListBalanceParams): Promise<void> {
+    const transaction = new Transaction();
+    transaction.add(await this.updateListBalanceInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
+  }
+
+  async updateListBalanceInstruction(params: UpdateListBalanceParams): Promise<TransactionInstruction> {
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(4, 0);
+
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
+      { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },];
+
+    const allValidators = await this.readValidators();
+    for (const validator of params.validators) {
+      keys.push({
+        pubkey: validator,
+        isSigner: false,
+        isWritable: false
+      })
+
+      const validatorInfo = allValidators.find((v) => v.votePubkey.equals(validator));
+      for (let i = 0; i < validatorInfo!.stakeCount; ++i) {
+        const stake = await this.getStakeForValidator(validator, i);
+        keys.push({
+          pubkey: stake,
+          isSigner: false,
+          isWritable: false
+        });
+      }
+    }
+
+    return new TransactionInstruction({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async updatePoolBalance(): Promise<void> {
+    const transaction = new Transaction();
+    transaction.add(await this.updatePoolBalanceInstruction());
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
+  }
+
+  async updatePoolBalanceInstruction(): Promise<TransactionInstruction> {
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(5, 0);
+
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: false },
+        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async updatePool(): Promise<void> {
+    console.log("Updating pool");
+    const transaction = new Transaction();
+    transaction.add(await this.updateListBalanceInstruction({
+      validators: (await this.readValidators()).map((v) => v.votePubkey)
+    }));
+    transaction.add(await this.updatePoolBalanceInstruction());
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip'
+      });
   }
 }
