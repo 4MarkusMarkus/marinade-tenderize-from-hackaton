@@ -78,10 +78,14 @@ pub struct StakePool {
     pub withdraw_bump_seed: u8,
     /// Validator stake list storage account
     pub validator_stake_list: Pubkey,
+    /// Credit list storage account
+    pub credit_list: Pubkey,
     /// Pool Mint
     pub pool_mint: Pubkey,
     /// Owner fee account
     pub owner_fee_account: Pubkey,
+    /// Credit reserve
+    pub credit_reserve: Pubkey,
     /// Pool token program id
     pub token_program_id: Pubkey,
     /// total stake under management
@@ -93,6 +97,7 @@ pub struct StakePool {
     /// Fee applied to deposits
     pub fee: Fee,
 }
+
 impl StakePool {
     /// Length of state data when serialized
     pub const LEN: usize = size_of::<StakePool>();
@@ -395,6 +400,139 @@ impl ValidatorStakeInfo {
             return Err(StakePoolError::InvalidStakeAccountAddress.into());
         }
         Ok(bump_seed)
+    }
+}
+
+/// Maximum credit records
+pub const MAX_CREDIT_RECORDS: usize = 10000;
+/// Credit list
+#[repr(C)]
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CreditList {
+    /// Validator stake list version
+    pub version: u8,
+    /// List of all credit users with amount of credit tokens
+    pub credits: Vec<CreditRecord>,
+}
+
+impl CreditList {
+    /// Length of ValidatorStakeList data when serialized
+    pub const LEN: usize = Self::HEADER_LEN + CreditRecord::LEN * MAX_CREDIT_RECORDS;
+
+    /// Header length
+    pub const HEADER_LEN: usize = size_of::<u8>() + size_of::<u16>();
+
+    /// Version of validator stake list
+    pub const VERSION: u8 = 1;
+
+    /// Check if contains validator with particular pubkey
+    pub fn contains(&self, user: &Pubkey) -> bool {
+        self.credits.iter().any(|x| x.user == *user)
+    }
+
+    /// Check if contains validator with particular pubkey (mutable)
+    pub fn find_mut(&mut self, user: &Pubkey) -> Option<&mut CreditRecord> {
+        self.credits.iter_mut().find(|x| x.user == *user)
+    }
+    /// Check if contains validator with particular pubkey (immutable)
+    pub fn find(&self, user: &Pubkey) -> Option<&CreditRecord> {
+        self.credits.iter().find(|x| x.user == *user)
+    }
+
+    /// Check if validator stake list is initialized
+    pub fn is_initialized(&self) -> bool {
+        self.version > 0
+    }
+
+    /// Deserializes a byte buffer into a ValidatorStakeList.
+    pub fn deserialize(input: &[u8]) -> Result<Self, ProgramError> {
+        if input.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        if input[0] == 0 {
+            return Ok(CreditList {
+                version: 0,
+                credits: vec![],
+            });
+        }
+
+        let number_of_records: usize = u16::from_le_bytes(
+            input[1..3]
+                .try_into()
+                .or(Err(ProgramError::InvalidAccountData))?,
+        ) as usize;
+        if number_of_records > MAX_CREDIT_RECORDS {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        let mut credits: Vec<CreditRecord> = Vec::with_capacity(number_of_records);
+
+        let mut from = Self::HEADER_LEN;
+        let mut to = from + Self::LEN;
+        for _ in 0..number_of_records {
+            credits.push(CreditRecord::deserialize(&input[from..to])?);
+            from += Self::LEN;
+            to += Self::LEN;
+        }
+        Ok(Self {
+            version: input[0],
+            credits,
+        })
+    }
+
+    /// Serializes ValidatorStakeList into a byte buffer.
+    pub fn serialize(&self, output: &mut [u8]) -> ProgramResult {
+        if output.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        if self.credits.len() > MAX_CREDIT_RECORDS {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        output[0] = self.version;
+        output[1..3].copy_from_slice(&u16::to_le_bytes(self.credits.len() as u16));
+        let mut from = Self::HEADER_LEN;
+        let mut to = from + Self::LEN;
+        for record in &self.credits {
+            record.serialize(&mut output[from..to])?;
+            from += Self::LEN;
+            to += Self::LEN;
+        }
+        Ok(())
+    }
+}
+/// Credit record
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct CreditRecord {
+    user: Pubkey,
+    token_amount: u64,
+}
+
+impl CreditRecord {
+    /// Length of CreditRecord
+    pub const LEN: usize = size_of::<CreditRecord>();
+
+    /// Deserializes a byte buffer into a CreditRecord.
+    pub fn deserialize(input: &[u8]) -> Result<Self, ProgramError> {
+        if input.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+        #[allow(clippy::cast_ptr_alignment)]
+        let credit_record: &CreditRecord =
+            unsafe { &*(&input[0] as *const u8 as *const CreditRecord) };
+        Ok(*credit_record)
+    }
+
+    /// Serializes CreditRecord into a byte buffer.
+    pub fn serialize(&self, output: &mut [u8]) -> ProgramResult {
+        if output.len() < Self::LEN {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        #[allow(clippy::cast_ptr_alignment)]
+        let value = unsafe { &mut *(&mut output[0] as *mut u8 as *mut CreditRecord) };
+        *value = *self;
+        Ok(())
     }
 }
 

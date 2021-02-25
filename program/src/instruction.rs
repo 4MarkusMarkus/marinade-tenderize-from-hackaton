@@ -45,8 +45,10 @@ pub enum StakePoolInstruction {
     ///   0. `[w]` New StakePool to create.
     ///   1. `[s]` Owner
     ///   2. `[w]` Uninitialized validator stake list storage account
+    ///   2. `[w]` Uninitialized credit list storage account
     ///   3. `[]` pool token Mint. Must be non zero, owned by withdraw authority.
     ///   4. `[]` Pool Account to deposit the generated fee for owner.
+    ///   5. `[w]` Credit reserve token account
     ///   5. `[]` Clock sysvar
     ///   6. `[]` Rent sysvar
     ///   7. `[]` Token program id
@@ -153,7 +155,7 @@ pub enum StakePoolInstruction {
     ///   7. `[]` Stake history sysvar that carries stake warmup/cooldown history
     ///   8. `[]` Address of config account that carries stake config
     ///   9. ..9+2N ` [w][] N stake + validator vote accounts to update balances
-    TestDeposit(u64),
+    Credit(u64),
 
     ///   11) Test deposit without reserve
     ///
@@ -165,7 +167,7 @@ pub enum StakePoolInstruction {
     ///   5. `[]` Clock sysvar
     ///   6. `[]` Stake history sysvar that carries stake warmup/cooldown history
     ///   7..7+N `[w]` N stake accounts
-    TestWithdraw(u64),
+    Uncredit(u64),
 
     ///   12) Delegate reserve to stake account
     ///
@@ -212,11 +214,11 @@ impl StakePoolInstruction {
             9 => Self::SetOwner,
             10 => {
                 let val: &u64 = unpack(input)?;
-                Self::TestDeposit(*val)
+                Self::Credit(*val)
             }
             11 => {
                 let val: &u64 = unpack(input)?;
-                Self::TestWithdraw(*val)
+                Self::Uncredit(*val)
             }
             12 => {
                 let count: &u32 = unpack(input)?;

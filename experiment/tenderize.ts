@@ -70,8 +70,10 @@ export class TenderizeProgram {
   stakePool: Account;
   owner: Account;
   validatorStakeListAccount: Account;
+  creditListAccount: Account;
   poolMintToken: PublicKey;
   ownersFee: PublicKey;
+  creditReserve: PublicKey;
 
   constructor(
     connection: Connection,
@@ -80,16 +82,20 @@ export class TenderizeProgram {
     stakePool: Account,
     owner: Account,
     validatorStakeListAccount: Account,
+    creditListAccount: Account,
     poolMintToken: PublicKey,
-    ownersFee: PublicKey) {
+    ownersFee: PublicKey,
+    creditReserve: PublicKey) {
     this.connection = connection;
     this.payerAccount = payerAccount;
     this.programAccount = programAccount;
     this.stakePool = stakePool;
     this.owner = owner;
     this.validatorStakeListAccount = validatorStakeListAccount;
+    this.creditListAccount = creditListAccount;
     this.poolMintToken = poolMintToken;
     this.ownersFee = ownersFee;
+    this.creditReserve = creditReserve;
   }
 
   get programId(): PublicKey {
@@ -118,6 +124,7 @@ export class TenderizeProgram {
     console.log(`Create stake pool ${this.stakePool.publicKey} with owners fee ${this.ownersFee}`);
     const stakePoolLength = 1000 + 4 + 32 + 4 + 4 + 32 + 32 + 32 + 8 + 8 + 8 + 2 * 8;
     const validatorStakeListLength = 60000 + 4 + 4 + 1000 * (32 + 8 + 8);
+    const creditListLength = 10000 * 64;
 
     const transaction = new Transaction();
     transaction.add(SystemProgram.createAccount({
@@ -134,12 +141,19 @@ export class TenderizeProgram {
       space: validatorStakeListLength,
       programId: this.programId
     }));
+    transaction.add(SystemProgram.createAccount({
+      fromPubkey: this.payerAccount.publicKey,
+      newAccountPubkey: this.creditListAccount.publicKey,
+      lamports: await this.connection.getMinimumBalanceForRentExemption(creditListLength),
+      space: creditListLength,
+      programId: this.programId
+    }));
     transaction.add(this.createStakePoolInstruction(params));
 
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
-      [this.payerAccount, this.owner, this.stakePool, this.validatorStakeListAccount],
+      [this.payerAccount, this.owner, this.stakePool, this.validatorStakeListAccount, this.creditListAccount],
       {
         commitment: 'singleGossip',
         preflightCommitment: 'singleGossip'
@@ -157,8 +171,10 @@ export class TenderizeProgram {
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
         { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
         { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.creditListAccount.publicKey, isSigner: false, isWritable: true },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: false },
         { pubkey: this.ownersFee, isSigner: false, isWritable: false },
+        { pubkey: this.creditReserve, isSigner: false, isWritable: true },
         { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }

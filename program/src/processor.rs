@@ -1,12 +1,13 @@
 //! Program state processor
 
-use std::{convert::TryInto, str::FromStr};
-
 use crate::{
     error::StakePoolError,
     instruction::{DelegateReserveInstruction, InitArgs, StakePoolInstruction},
     stake,
-    state::{StakePool, ValidatorStakeInfo, ValidatorStakeList, MIN_STAKE_ACCOUNT_BALANCE},
+    state::{
+        CreditList, CreditRecord, StakePool, ValidatorStakeInfo, ValidatorStakeList,
+        MAX_CREDIT_RECORDS, MIN_STAKE_ACCOUNT_BALANCE,
+    },
     PROGRAM_VERSION,
 };
 use bincode::deserialize;
@@ -24,12 +25,10 @@ use solana_program::{
     program_pack::Pack,
     pubkey::Pubkey,
     rent::Rent,
-    stake_history::StakeHistory,
     system_instruction, system_program,
     sysvar::Sysvar,
 };
 use spl_token::state::Mint;
-use stake::StakeState;
 /*
 impl<'a> ValidatorStakeDelegator<'a> {
     pub(crate) const ACCOUNT_COUNT: usize = EPOCHS_FOR_DELEGATION + 2;
@@ -849,8 +848,10 @@ impl Processor {
         let stake_pool_info = next_account_info(account_info_iter)?;
         let owner_info = next_account_info(account_info_iter)?;
         let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let credit_list_info = next_account_info(account_info_iter)?;
         let pool_mint_info = next_account_info(account_info_iter)?;
         let owner_fee_info = next_account_info(account_info_iter)?;
+        let credit_reserve_info = next_account_info(account_info_iter)?;
         // Clock sysvar account
         let clock_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(clock_info)?;
@@ -880,6 +881,14 @@ impl Processor {
         validator_stake_list.version = ValidatorStakeList::VALIDATOR_STAKE_LIST_VERSION;
         validator_stake_list.validators.clear();
 
+        // Check if credit list storage is unitialized
+        let mut credit_list = CreditList::deserialize(&credit_list_info.data.borrow())?;
+        if credit_list.is_initialized() {
+            return Err(StakePoolError::AlreadyInUse.into());
+        }
+        credit_list.version = CreditList::VERSION;
+        credit_list.credits.clear();
+
         // Check if stake pool account is rent-exempt
         if !rent.is_exempt(stake_pool_info.lamports(), stake_pool_info.data_len()) {
             return Err(StakePoolError::AccountNotRentExempt.into());
@@ -892,6 +901,22 @@ impl Processor {
         ) {
             return Err(StakePoolError::AccountNotRentExempt.into());
         }
+
+        // Check if credit list account is rent-exempt
+        if !rent.is_exempt(credit_list_info.lamports(), credit_list_info.data_len()) {
+            return Err(StakePoolError::AccountNotRentExempt.into());
+        }
+
+        let (_, deposit_bump_seed) = Self::find_authority_bump_seed(
+            program_id,
+            stake_pool_info.key,
+            Self::AUTHORITY_DEPOSIT,
+        );
+        let (withdraw_authority_key, withdraw_bump_seed) = Self::find_authority_bump_seed(
+            program_id,
+            stake_pool_info.key,
+            Self::AUTHORITY_WITHDRAW,
+        );
 
         // Numerator should be smaller than or equal to denominator (fee <= 1)
         if init.fee.numerator > init.fee.denominator {
@@ -909,6 +934,17 @@ impl Processor {
             return Err(StakePoolError::InvalidFeeAccount.into());
         }
 
+        // Check if credit account's owner the same as token program id
+        if credit_reserve_info.owner != token_program_info.key {
+            msg!(
+                "Expexted credit reserve's account {} to have {} owner but it has {}",
+                credit_reserve_info.key,
+                token_program_info.key,
+                credit_reserve_info.owner
+            );
+            return Err(StakePoolError::InvalidFeeAccount.into());
+        }
+
         // Check pool mint program ID
         if pool_mint_info.owner != token_program_info.key {
             return Err(ProgramError::IncorrectProgramId);
@@ -921,16 +957,24 @@ impl Processor {
             return Err(StakePoolError::WrongAccountMint.into());
         }
 
-        let (_, deposit_bump_seed) = Self::find_authority_bump_seed(
-            program_id,
-            stake_pool_info.key,
-            Self::AUTHORITY_DEPOSIT,
-        );
-        let (withdraw_authority_key, withdraw_bump_seed) = Self::find_authority_bump_seed(
-            program_id,
-            stake_pool_info.key,
-            Self::AUTHORITY_WITHDRAW,
-        );
+        let credit_state =
+            spl_token::state::Account::unpack_from_slice(&credit_reserve_info.data.borrow())?;
+        // Check for credit account to have proper mint assigned
+        if *pool_mint_info.key != credit_state.mint {
+            return Err(StakePoolError::WrongAccountMint.into());
+        }
+
+        if credit_state.state != spl_token::state::AccountState::Initialized {
+            return Err(StakePoolError::WrongCreditState.into());
+        }
+
+        if credit_state.delegate.is_some() {
+            return Err(StakePoolError::WrongCreditState.into());
+        }
+
+        if credit_state.close_authority.is_some() {
+            return Err(StakePoolError::WrongCreditState.into());
+        }
 
         let pool_mint = Mint::unpack_from_slice(&pool_mint_info.data.borrow())?;
 
@@ -943,6 +987,23 @@ impl Processor {
             return Err(StakePoolError::WrongMintingAuthority.into());
         }
 
+        // change credit reserve owner to PDA
+        invoke(
+            &spl_token::instruction::set_authority(
+                token_program_info.key,
+                credit_reserve_info.key,
+                Some(&withdraw_authority_key),
+                spl_token::instruction::AuthorityType::AccountOwner,
+                owner_info.key,
+                &[],
+            )?,
+            &[
+                token_program_info.clone(),
+                owner_info.clone(),
+                credit_reserve_info.clone(),
+            ],
+        )?;
+
         validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
 
         msg!("Clock data: {:?}", clock_info.data.borrow());
@@ -953,8 +1014,10 @@ impl Processor {
         stake_pool.deposit_bump_seed = deposit_bump_seed;
         stake_pool.withdraw_bump_seed = withdraw_bump_seed;
         stake_pool.validator_stake_list = *validator_stake_list_info.key;
+        stake_pool.credit_list = *credit_list_info.key;
         stake_pool.pool_mint = *pool_mint_info.key;
         stake_pool.owner_fee_account = *owner_fee_info.key;
+        stake_pool.credit_reserve = *credit_reserve_info.key;
         stake_pool.token_program_id = *token_program_info.key;
         stake_pool.last_update_epoch = clock.epoch;
         stake_pool.fee = init.fee;
@@ -2197,12 +2260,12 @@ impl Processor {
                 msg!("Instruction: SetOwner");
                 Self::process_set_owner(program_id, accounts)
             }
-            StakePoolInstruction::TestDeposit(amount) => {
-                panic!("Instruction: TestDeposit {}", amount);
+            StakePoolInstruction::Credit(amount) => {
+                panic!("Instruction: Credit {}", amount);
                 // Self::process_test_deposit(program_id, amount, accounts)
             }
-            StakePoolInstruction::TestWithdraw(amount) => {
-                panic!("Instruction: TestWithdraw {}", amount);
+            StakePoolInstruction::Uncredit(amount) => {
+                panic!("Instruction: Uncredit {}", amount);
                 // Self::process_test_withdraw(program_id, amount, accounts)
             }
             StakePoolInstruction::DelegateReserve(instructions) => {
@@ -2248,6 +2311,8 @@ impl PrintProgramError for StakePoolError {
             StakePoolError::AccountNotRentExempt => msg!("Error: Account is not rent-exempt"),
             StakePoolError::ValidatorListOverflow => msg!("Error: Validator list is full. Can't add more validators"),
             StakePoolError::FirstDepositIsTooSmall => msg!("Error: First deposit must be at least enough for rent"),
+            StakePoolError::WrongCreditOwner => msg!("Error: Wrong credit owner"),
+            StakePoolError::WrongCreditState => msg!("Error: Wrong credit satte"),
         }
     }
 }

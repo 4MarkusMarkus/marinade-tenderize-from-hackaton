@@ -35,8 +35,10 @@ export class Tester {
       await Tester.loadAccount("stake_pool"),
       this.payerAccount, // owner
       await Tester.loadAccount("validator_list"),
+      await Tester.loadAccount('credit_list'),
       (await Tester.loadAccount('tSOL_token')).publicKey,
-      (await Tester.loadAccount('owners_fee')).publicKey);
+      (await Tester.loadAccount('owners_fee')).publicKey,
+      (await Tester.loadAccount('credit_reserve')).publicKey);
   }
 
   static async loadAccount(name: String): Promise<Account> {

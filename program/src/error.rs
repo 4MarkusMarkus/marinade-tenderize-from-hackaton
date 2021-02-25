@@ -79,6 +79,12 @@ pub enum StakePoolError {
     /// First deposit must be greater than empty account rent
     #[error("FirstDepositIsTooSmall")]
     FirstDepositIsTooSmall,
+    /// Wrong credit owner
+    #[error("WrongCreditOwner")]
+    WrongCreditOwner,
+    /// Wrong credit state
+    #[error("WrongCreditState")]
+    WrongCreditState,
 }
 impl From<StakePoolError> for ProgramError {
     fn from(e: StakePoolError) -> Self {
