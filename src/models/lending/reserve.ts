@@ -4,48 +4,48 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
-} from "@solana/web3.js";
-import BN from "bn.js";
-import * as BufferLayout from "buffer-layout";
-import { TOKEN_PROGRAM_ID, LENDING_PROGRAM_ID } from "../../utils/ids";
-import { wadToLamports } from "../../utils/utils";
-import * as Layout from "./../../utils/layout";
-import { LendingInstruction } from "./lending";
+} from '@solana/web3.js';
+import BN from 'bn.js';
+import * as BufferLayout from 'buffer-layout';
+import { TOKEN_PROGRAM_ID, TENDERIZE_PROGRAM_ID } from '../../utils/ids';
+import { wadToLamports } from '../../utils/utils';
+import * as Layout from './../../utils/layout';
+import { LendingInstruction } from './lending';
 
 export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.struct(
   [
-    BufferLayout.u8("version"),
-    Layout.uint64("lastUpdateSlot"),
+    BufferLayout.u8('version'),
+    Layout.uint64('lastUpdateSlot'),
 
-    Layout.publicKey("lendingMarket"),
-    Layout.publicKey("liquidityMint"),
-    BufferLayout.u8("liquidityMintDecimals"),
-    Layout.publicKey("liquiditySupply"),
-    Layout.publicKey("collateralMint"),
-    Layout.publicKey("collateralSupply"),
+    Layout.publicKey('lendingMarket'),
+    Layout.publicKey('liquidityMint'),
+    BufferLayout.u8('liquidityMintDecimals'),
+    Layout.publicKey('liquiditySupply'),
+    Layout.publicKey('collateralMint'),
+    Layout.publicKey('collateralSupply'),
 
-    Layout.publicKey("collateralFeesReceiver"),
+    Layout.publicKey('collateralFeesReceiver'),
 
     // TODO: replace u32 option with generic quivalent
-    BufferLayout.u32("dexMarketOption"),
-    Layout.publicKey("dexMarket"),
+    BufferLayout.u32('dexMarketOption'),
+    Layout.publicKey('dexMarket'),
 
     BufferLayout.struct(
       [
         /// Optimal utilization rate as a percent
-        BufferLayout.u8("optimalUtilizationRate"),
+        BufferLayout.u8('optimalUtilizationRate'),
         /// The ratio of the loan to the value of the collateral as a percent
-        BufferLayout.u8("loanToValueRatio"),
+        BufferLayout.u8('loanToValueRatio'),
         /// The percent discount the liquidator gets when buying collateral for an unhealthy obligation
-        BufferLayout.u8("liquidationBonus"),
+        BufferLayout.u8('liquidationBonus'),
         /// The percent at which an obligation is considered unhealthy
-        BufferLayout.u8("liquidationThreshold"),
+        BufferLayout.u8('liquidationThreshold'),
         /// Min borrow APY
-        BufferLayout.u8("minBorrowRate"),
+        BufferLayout.u8('minBorrowRate'),
         /// Optimal (utilization) borrow APY
-        BufferLayout.u8("optimalBorrowRate"),
+        BufferLayout.u8('optimalBorrowRate'),
         /// Max borrow APY
-        BufferLayout.u8("maxBorrowRate"),
+        BufferLayout.u8('maxBorrowRate'),
 
         BufferLayout.struct(
           [
@@ -55,29 +55,29 @@ export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.
             /// 1% = 10_000_000_000_000_000
             /// 0.01% (1 basis point) = 100_000_000_000_000
             /// 0.00001% (Aave borrow fee) = 100_000_000_000
-            Layout.uint64("borrowFeeWad"),
+            Layout.uint64('borrowFeeWad'),
 
             /// Amount of fee going to host account, if provided in liquidate and repay
-            BufferLayout.u8("hostFeePercentage"),
+            BufferLayout.u8('hostFeePercentage'),
           ],
-          "fees"
+          'fees'
         ),
       ],
-      "config"
+      'config'
     ),
 
     BufferLayout.struct(
       [
-        Layout.uint128("cumulativeBorrowRateWad"),
-        Layout.uint128("borrowedLiquidityWad"),
-        Layout.uint64("availableLiquidity"),
-        Layout.uint64("collateralMintSupply"),
+        Layout.uint128('cumulativeBorrowRateWad'),
+        Layout.uint128('borrowedLiquidityWad'),
+        Layout.uint64('availableLiquidity'),
+        Layout.uint64('collateralMintSupply'),
       ],
-      "state"
+      'state'
     ),
 
     // extra space for future contract changes
-    BufferLayout.blob(300, "padding"),
+    BufferLayout.blob(300, 'padding'),
   ]
 );
 
@@ -165,9 +165,9 @@ export const initReserveInstruction = (
   dexMarket: PublicKey // TODO: optional
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
-    BufferLayout.u8("instruction"),
-    Layout.uint64("liquidityAmount"),
-    BufferLayout.u8("maxUtilizationRate"),
+    BufferLayout.u8('instruction'),
+    Layout.uint64('liquidityAmount'),
+    BufferLayout.u8('maxUtilizationRate'),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
@@ -202,7 +202,7 @@ export const initReserveInstruction = (
   ];
   return new TransactionInstruction({
     keys,
-    programId: LENDING_PROGRAM_ID,
+    programId: TENDERIZE_PROGRAM_ID,
     data,
   });
 };
@@ -210,7 +210,7 @@ export const initReserveInstruction = (
 export const accrueInterestInstruction = (
   ...reserveAccount: PublicKey[]
 ): TransactionInstruction => {
-  const dataLayout = BufferLayout.struct([BufferLayout.u8("instruction")]);
+  const dataLayout = BufferLayout.struct([BufferLayout.u8('instruction')]);
 
   const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
@@ -230,7 +230,7 @@ export const accrueInterestInstruction = (
   ];
   return new TransactionInstruction({
     keys,
-    programId: LENDING_PROGRAM_ID,
+    programId: TENDERIZE_PROGRAM_ID,
     data,
   });
 };
@@ -267,7 +267,7 @@ export const collateralToLiquidity = (
   reserve?: LendingReserve
 ) => {
   const amount =
-    typeof collateralAmount === "number"
+    typeof collateralAmount === 'number'
       ? collateralAmount
       : collateralAmount.toNumber();
   return Math.floor(amount / collateralExchangeRate(reserve));
@@ -278,7 +278,7 @@ export const liquidityToCollateral = (
   reserve?: LendingReserve
 ) => {
   const amount =
-    typeof liquidityAmount === "number"
+    typeof liquidityAmount === 'number'
       ? liquidityAmount
       : liquidityAmount.toNumber();
   return Math.floor(amount * collateralExchangeRate(reserve));
