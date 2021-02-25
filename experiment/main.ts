@@ -6,9 +6,6 @@ async function main() {
   const tester = await Tester.build();
   await tester.initTenderize();
 
-  const withrdawAuthority = new PublicKey("5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg");
-  const depositAuthotiry = new PublicKey("9EVGoPwR9TLrxnuAqhLgk5hBkJY9ogbeUyUu83vqsYki");
-
   const validators = await tester.getValidators();
   if (true) {
     await tester.createStakePool();
@@ -21,42 +18,14 @@ async function main() {
   if (true) {
     await tester.tenderize!.deposit({
       userSource: tester.payerAccount,
-      amount: 10000,
+      amount: 100000000000,
       userToken: tester.tenderize!.ownersFee, // All to my token
-      stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
-      reserve: new PublicKey('J5zPZnPwxxyV2vMSneQy4kasgteR1rHYEokfaa2G9DdQ'), // TODO calculate automaticaly
     })
   }
   if (true) {
-    await tester.tenderize!.delegateReserveBatch(10000000000, tester.payerAccount, depositAuthotiry, withrdawAuthority);
+    await tester.tenderize!.delegateReserveBatch(10000000000);
   }
 
-  /*
-  if (false) {
-    await tester.tenderize!.testDeposit({
-      amount: 100,
-      userWallet: tester.payerAccount,
-      stakePoolDepositAuthority: depositAuthotiry,
-      validators: await tester.getValidators()
-    });
-  }
-  if (false) {
-    await tester.tenderize!.testWithdraw({
-      amount: 5,
-      userWallet: tester.payerAccount,
-      stakePoolWithdrawAuthority: withrdawAuthority,
-      validators: await tester.getValidators()
-    });
-  }*/
-  /*
-  await tester.tenderize!.deposit({
-    stakePoolDepositAuthority: depositAuthotiry, // TODO calculate automaticaly
-    stakePoolWithdrawAuthority: withrdawAuthority, // TODO calculate automaticaly
-    input: new PublicKey('DqtKB4byyy9r3Vywt2jt3Mj5bE9iq6eMU3QMy8sMt7iB'),
-    validatorsStake: validatorsStake,
-    outputTokenAccount: new PublicKey("7dRm2RFiC5xGn9KodMtgS1oFXMNdaPhjTYiSeJrUdwVn"),
-    feeTokenAccount: new PublicKey("7dRm2RFiC5xGn9KodMtgS1oFXMNdaPhjTYiSeJrUdwVn"),
-  });*/
   console.log('Success');
 }
 

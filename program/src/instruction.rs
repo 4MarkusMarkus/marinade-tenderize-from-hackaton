@@ -172,7 +172,7 @@ pub enum StakePoolInstruction {
     ///   1.  `[w]` Validator stake list storage account
     ///   2.  `[]` Stake pool withdraw authority
     ///   3.  `[]` Stake pool deposit authority
-    ///   4.  `[ws]` SOL reserve account
+    ///   4.  `[w]` SOL reserve account (PDA)
     ///   5.  `[]` System program
     ///   6.  `[]` Stake program
     ///   7.  `[]` Clock sysvar

@@ -19,8 +19,6 @@ export interface CreateStakePoolParams {
 
 export interface CreateValidatorStakeParams {
   validator: PublicKey,
-  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
-  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
 }
 
 export interface AddValidatorParams {
@@ -31,21 +29,17 @@ export interface DepositParams {
   userSource: Account,
   amount: number,
   userToken: PublicKey,
-  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
-  reserve: PublicKey, // TODO calculate automaticaly
 }
 
 export interface TestDepositParams {
   amount: number,
   userWallet: Account,
-  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
   validators: PublicKey[]
 }
 
 export interface TestWithdrawParams {
   amount: number,
   userWallet: Account,
-  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
   validators: PublicKey[]
 }
 
@@ -56,9 +50,6 @@ export interface DepositReserveValidatorParam {
 }
 
 export interface DepositReserveParams {
-  reserve: Account, // TODO: make PDA
-  stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
-  stakePoolWithdrawAuthority: PublicKey, // TODO calculate automaticaly
   validators: DepositReserveValidatorParam[]
 }
 
@@ -95,16 +86,23 @@ export class TenderizeProgram {
     return this.programAccount.publicKey;
   }
 
-  /*
-  static async getStakePoolMintAuthority(stakePool: PublicKey): Promise<PublicKey> {
-    return (await PublicKey.findProgramAddress([stakePool.toBuffer(), new TextEncoder().encode('withdraw')], stakePool))[0];
+  async getReserveAddress(): Promise<PublicKey> {
+    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('reserve')], this.programId))[0];
   }
-  */
 
-  /*
-  async getReserveAccount(): Promise<PublicKey> {
-    return await PublicKey.createProgramAddress([this.stakePool.publicKey.toBuffer()], this.programId);
-  }*/
+  async getDepositAuthority(): Promise<PublicKey> {
+    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('deposit')], this.programId))[0];
+  }
+
+  async getWithdrawAuthority(): Promise<PublicKey> {
+    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('withdraw')], this.programId))[0];
+  }
+
+  async getStakeForValidator(validator: PublicKey, index: number) {
+    const indexBuffer = Buffer.alloc(4);
+    indexBuffer.writeUInt32LE(index, 0);
+    return (await PublicKey.findProgramAddress([validator.toBuffer(), this.stakePool.publicKey.toBuffer(), indexBuffer], this.programId))[0];
+  }
 
   async createStakePool(params: CreateStakePoolParams): Promise<void> {
     console.log(`Create stake pool ${this.stakePool.publicKey} with owners fee ${this.ownersFee}`);
@@ -158,12 +156,6 @@ export class TenderizeProgram {
       programId: this.programAccount.publicKey,
       data,
     });
-  }
-
-  async getStakeForValidator(validator: PublicKey, index: number) {
-    const indexBuffer = Buffer.alloc(4);
-    indexBuffer.writeUInt32LE(index, 0);
-    return (await PublicKey.findProgramAddress([validator.toBuffer(), this.stakePool.publicKey.toBuffer(), indexBuffer], this.programId))[0];
   }
 
   async readState() {
@@ -220,7 +212,7 @@ export class TenderizeProgram {
   async deposit(params: DepositParams) {
     console.log(`Deposit ${params.amount}`);
     const transaction = new Transaction();
-    transaction.add(this.depositInstruction(params));
+    transaction.add(await this.depositInstruction(params));
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
@@ -231,7 +223,7 @@ export class TenderizeProgram {
       });
   }
 
-  depositInstruction(params: DepositParams) {
+  async depositInstruction(params: DepositParams) {
     const data = Buffer.alloc(1 + 8);
     let p = data.writeUInt8(6, 0);
     p = data.writeBigInt64LE(BigInt(params.amount), p);
@@ -239,8 +231,8 @@ export class TenderizeProgram {
     return new TransactionInstruction({
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.reserve, isSigner: false, isWritable: true },
+        { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
+        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
         { pubkey: params.userSource.publicKey, isSigner: true, isWritable: true },
         { pubkey: params.userToken, isSigner: false, isWritable: true },
         { pubkey: this.ownersFee, isSigner: false, isWritable: true },
@@ -358,7 +350,7 @@ export class TenderizeProgram {
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
-      [params.reserve],
+      [this.payerAccount],
       {
         commitment: 'singleGossip',
         preflightCommitment: 'singleGossip'
@@ -373,9 +365,9 @@ export class TenderizeProgram {
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
       { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-      { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
-      { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
-      { pubkey: params.reserve.publicKey, isSigner: true, isWritable: true },
+      { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
+      { pubkey: await this.getDepositAuthority(), isSigner: false, isWritable: false },
+      { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
@@ -410,11 +402,7 @@ export class TenderizeProgram {
     });
   }
 
-  async delegateReserveBatch(
-    totalAmount: number,
-    reserve: Account, // TODO: make PDA
-    stakePoolDepositAuthority: PublicKey, // TODO calculate automaticaly
-    stakePoolWithdrawAuthority: PublicKey,) {
+  async delegateReserveBatch(totalAmount: number) {
     if (totalAmount < MIN_STAKE_ACCOUNT_BALANCE) {
       throw Error("Too low delegation");
     }
@@ -485,9 +473,6 @@ export class TenderizeProgram {
     }
 
     await this.delegateReserve({
-      reserve,
-      stakePoolDepositAuthority,
-      stakePoolWithdrawAuthority,
       validators: instructions
     })
   }

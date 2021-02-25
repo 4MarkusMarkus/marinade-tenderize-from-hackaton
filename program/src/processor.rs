@@ -1929,7 +1929,7 @@ impl Processor {
         stake_pool: &Pubkey,
         index: u32,
         lamports: u64,
-        funder_info: &AccountInfo<'a>,
+        reserve_info: &AccountInfo<'a>,
         deposit_info: &AccountInfo<'a>,
         withdraw_info: &AccountInfo<'a>,
         stake_program_info: &AccountInfo<'a>,
@@ -1938,6 +1938,7 @@ impl Processor {
         stake_config_info: &AccountInfo<'a>,
         rent_info: &AccountInfo<'a>,
         deposit_signer_seeds: &[&[u8]],
+        reserve_signer_seeds: &[&[u8]],
     ) -> Result<(), ProgramError> {
         // Fund the associated token account with at least the minimum balance to be rent exempt
         if lamports < MIN_STAKE_ACCOUNT_BALANCE {
@@ -1961,14 +1962,14 @@ impl Processor {
         // Create new stake account
         invoke_signed(
             &system_instruction::create_account(
-                &funder_info.key,
+                &reserve_info.key,
                 &stake_account_info.key,
                 lamports,
                 std::mem::size_of::<stake::StakeState>() as u64,
                 &stake::id(),
             ),
-            &[funder_info.clone(), stake_account_info.clone()],
-            &[stake_signer_seeds],
+            &[reserve_info.clone(), stake_account_info.clone()],
+            &[stake_signer_seeds, reserve_signer_seeds],
         )?;
 
         invoke(
@@ -2016,7 +2017,7 @@ impl Processor {
         stake_account_info: &AccountInfo<'a>,
         index: u32,
         lamports: u64,
-        funder_info: &AccountInfo<'a>,
+        reserve_info: &AccountInfo<'a>,
         deposit_info: &AccountInfo<'a>,
         system_program_info: &AccountInfo<'a>,
         stake_program_info: &AccountInfo<'a>,
@@ -2024,6 +2025,7 @@ impl Processor {
         stake_history_info: &AccountInfo<'a>,
         stake_config_info: &AccountInfo<'a>,
         deposit_signer_seeds: &[&[u8]],
+        reserve_signer_seeds: &[&[u8]],
     ) -> Result<(), ProgramError> {
         msg!(
             "Redelegate stake #{} {} with {} more lamports",
@@ -2032,13 +2034,14 @@ impl Processor {
             lamports
         );
 
-        invoke(
-            &system_instruction::transfer(funder_info.key, &stake_account_info.key, lamports),
+        invoke_signed(
+            &system_instruction::transfer(reserve_info.key, &stake_account_info.key, lamports),
             &[
-                funder_info.clone(),
+                reserve_info.clone(),
                 stake_account_info.clone(),
                 system_program_info.clone(),
             ],
+            &[reserve_signer_seeds],
         )?;
 
         // Redelegate
@@ -2111,10 +2114,27 @@ impl Processor {
 
         stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
 
+        let (reserve_address, reserve_bump) =
+            Self::get_reserve_adderess(program_id, stake_pool_info.key);
+        if *reserve_account_info.key != reserve_address {
+            msg!(
+                "Expected reserve to be {} but got {}",
+                &reserve_address,
+                reserve_account_info.key
+            );
+            return Err(ProgramError::InvalidArgument);
+        }
+
         let deposit_signer_seeds: &[&[_]] = &[
             &stake_pool_info.key.to_bytes()[..32],
             Self::AUTHORITY_DEPOSIT,
             &[stake_pool.deposit_bump_seed],
+        ];
+
+        let reserve_signer_seeds: &[&[u8]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_RESERVE,
+            &[reserve_bump],
         ];
 
         let mut total_amount = 0;
@@ -2162,6 +2182,7 @@ impl Processor {
                         stake_config_info,
                         rent_info,
                         deposit_signer_seeds,
+                        reserve_signer_seeds,
                     )?;
                 } else {
                     Self::redelegate_stake(
@@ -2178,6 +2199,7 @@ impl Processor {
                         stake_history_info,
                         stake_config_info,
                         deposit_signer_seeds,
+                        reserve_signer_seeds,
                     )?;
                 }
 
