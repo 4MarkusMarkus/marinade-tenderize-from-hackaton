@@ -6,7 +6,6 @@ import {
 } from '@solana/web3.js';
 import { AccountLayout } from '@solana/spl-token';
 import { sendTransaction } from '../contexts/connection';
-import { WalletAdapter } from '../contexts/wallet';
 import {
   accrueInterestInstruction,
   LendingReserve,
@@ -23,7 +22,7 @@ export const withdraw = async (
   reserve: LendingReserve,
   reserveAddress: PublicKey,
   connection: Connection,
-  wallet: WalletAdapter
+  wallet: any
 ) => {
   if (!wallet.publicKey) {
     throw new Error('Wallet is not connected');

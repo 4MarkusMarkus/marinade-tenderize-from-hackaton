@@ -1,5 +1,5 @@
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { Col, Row, Card } from 'antd';
+import { Col, Row, Card, Button } from 'antd';
 import React, { useEffect, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import { ConnectButton } from '../../components/ConnectButton';
@@ -8,14 +8,14 @@ import { useConnectionConfig } from '../../contexts/connection';
 import { useMarkets } from '../../contexts/market';
 import { formatNumber } from '../../utils/utils';
 
-const stakeHammer = require('../../img/stakeHammer.svg');
+// const stakeHammer = require('../../img/stakeHammer.svg');
 const potionHero = require('../../img/potionHero.svg');
 const friends = require('../../img/friends.svg');
 const solanaLogo = require('../../img/solanaLogo.svg');
-const polygonLogo = require("../../img/polygonDark.svg");
-const keepLogo = require("../../img/keep.svg")
-const hammer = require("../../img/hammer.svg");
-const meat = require("../../img/meat.svg");
+const polygonLogo = require('../../img/polygonDark.svg');
+const keepLogo = require('../../img/keep.svg');
+const hammer = require('../../img/hammer.svg');
+const meat = require('../../img/meat.svg');
 
 export const HomeView = () => {
   const { marketEmitter, midPriceInUSD } = useMarkets();
@@ -51,61 +51,73 @@ export const HomeView = () => {
       <Col
         span={24}
         style={{
-          marginTop:"90px",
-          height: '80vh',
+          marginTop: '90px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems:'center'
+          alignItems: 'center',
         }}
       >
-        
-          <h2 className='title' style={{ marginTop: '1em', marginBottom: 0 }}>
-            The easiest way to stake your tokens
-          </h2>
-          <h2 className='title' style={{ marginTop: 0 }}>
-            and get rewards
-          </h2>
-          <h3 className='subtext' style={{ marginBottom: '2em' }}>
-            Enjoy automatic reinvestment of rewards and immediate access to
-            staked tokens.
-            {/* Making
+        <h2 className='title' style={{ marginTop: '1em', marginBottom: 0 }}>
+          The easiest way to stake your tokens
+        </h2>
+        <h2 className='title' style={{ marginTop: 0 }}>
+          and get rewards
+        </h2>
+        <h3 className='subtext' style={{ marginBottom: '2em' }}>
+          Enjoy automatic reinvestment of rewards and immediate access to staked
+          tokens.
+          {/* Making
             <span style={{ color: '#4E66DE', fontWeight: 900 }}>
               {' stake easier '}
             </span>
             to chew. */}
-          </h3>
-          <div style={{position: "relative"}}>
-            <img id="meat" width="100" src={meat} alt="logo" />
-            <img id="hammer" width="130" src={hammer} alt="logo" />
-          </div>
+        </h3>
+        <div style={{ position: 'relative' }}>
+          <img id='meat' width='100' src={meat} alt='logo' />
+          <img id='hammer' width='130' src={hammer} alt='logo' />
+        </div>
       </Col>
       <Col
         span={22}
         offset={1}
         style={{
+          marginTop: '120px',
           height: '450',
           display: 'flex',
           justifyContent: 'space-around',
         }}
       >
         <Card className='card' style={{ width: '30%' }}>
-        <div style={{
-                height: "100%",
-                display: "flex", 
-                flexDirection:"column", 
-                justifyContent:"space-between",
-                alignItems:'center'}}>
-              <div>
-                <img src={polygonLogo} alt="polygon logo" style={{maxWidth:"70%"}}/>
-                <h2 className="subtext" style={{marginTop:"5px"}}>POLYGON</h2>
-              </div>
-              <div style={{marginTop: "5px", marginBottom:"5px"}}>
-                <h2 className="title" style={{marginBottom: 0}}>10.2%</h2>
-                <h3 style={{marginBottom: 0}}>Vault Rewards</h3>
-                <h5>(projected APY)</h5>
-              </div>
-                <ConnectButton className="tenderButton tenderButtonLight">Coming Soon</ConnectButton>
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <img
+                src={polygonLogo}
+                alt='polygon logo'
+                style={{ maxWidth: '70%' }}
+              />
+              <h2 className='subtext' style={{ marginTop: '5px' }}>
+                POLYGON
+              </h2>
             </div>
+            <div style={{ marginTop: '5px', marginBottom: '5px' }}>
+              <h2 className='title' style={{ marginBottom: 0 }}>
+                10.2%
+              </h2>
+              <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+              <h5>(projected APY)</h5>
+            </div>
+            <Button className='tenderButton tenderButtonShade' disabled>
+              Coming Soon
+            </Button>
+          </div>
         </Card>
         <Card className='card' style={{ width: '30%', height: '100%' }}>
           <div
@@ -147,30 +159,43 @@ export const HomeView = () => {
           </div>
         </Card>
         <Card className='card' style={{ width: '30%' }}>
-        <div style={{
-                height: "100%",
-                display: "flex", 
-                flexDirection:"column", 
-                justifyContent:"space-between",
-                alignItems:'center'
-                }}>
-              <div>
-                <img src={keepLogo} alt="keep logo" style={{maxWidth:"100%"}}/>
-                <h2 className="subtext" style={{marginTop:"5px"}}>KEEP</h2>
-              </div>
-              <div style={{marginTop: "5px", marginBottom:"5px"}}>
-                <h2 className="title" style={{marginBottom: 0}}>9.8%</h2>
-                <h3 style={{marginBottom: 0}}>Vault Rewards</h3>
-                <h5>(projected APY)</h5>
-              </div>
-              <ConnectButton className="tenderButton tenderButtonLight">Coming Soon</ConnectButton>
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div>
+              <img
+                src={keepLogo}
+                alt='keep logo'
+                style={{ maxWidth: '100%' }}
+              />
+              <h2 className='subtext' style={{ marginTop: '5px' }}>
+                KEEP
+              </h2>
             </div>
+            <div style={{ marginTop: '5px', marginBottom: '5px' }}>
+              <h2 className='title' style={{ marginBottom: 0 }}>
+                9.8%
+              </h2>
+              <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+              <h5>(projected APY)</h5>
+            </div>
+            <Button className='tenderButton tenderButtonShade' disabled>
+              Coming Soon
+            </Button>
+          </div>
         </Card>
       </Col>
       <Col span={10} offset={2}>
         <div style={{ marginTop: '100px', marginBottom: '70px' }}>
           <img style={{ maxWidth: '100%' }} src={potionHero} alt='potionHero' />
         </div>
+        <p>{balance}</p>
       </Col>
       <Col span={10}>
         <p className='subtext'> Tenderize is a liquid staking protocol. </p>
