@@ -11,7 +11,7 @@ import {
   LendingReserve,
   withdrawInstruction,
 } from '../models/lending';
-import { LENDING_PROGRAM_ID } from '../utils/ids';
+import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
 import { notify } from '../utils/notifications';
 import { findOrCreateAccountByMint } from './account';
 import { approve, TokenAccount } from '../models';
@@ -45,7 +45,7 @@ export const withdraw = async (
 
   const [authority] = await PublicKey.findProgramAddress(
     [reserve.lendingMarket.toBuffer()],
-    LENDING_PROGRAM_ID
+    TENDERIZE_PROGRAM_ID
   );
 
   const fromAccount = from.pubkey;

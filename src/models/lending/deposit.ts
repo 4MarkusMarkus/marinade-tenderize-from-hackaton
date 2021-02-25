@@ -2,14 +2,13 @@ import {
   PublicKey,
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
-} from "@solana/web3.js";
-import BN from "bn.js";
-import * as BufferLayout from "buffer-layout";
-import { TOKEN_PROGRAM_ID, LENDING_PROGRAM_ID } from "../../utils/ids";
-import * as Layout from "./../../utils/layout";
-import { calculateBorrowAPY } from "./borrow";
-import { LendingInstruction } from "./lending";
-import { calculateUtilizationRatio, LendingReserve } from "./reserve";
+} from '@solana/web3.js';
+import BN from 'bn.js';
+import * as BufferLayout from 'buffer-layout';
+import { TOKEN_PROGRAM_ID, TENDERIZE_PROGRAM_ID } from '../../utils/ids';
+import * as Layout from './../../utils/layout';
+import { LendingInstruction } from './lending';
+import { calculateUtilizationRatio, LendingReserve } from './reserve';
 
 /// Deposit liquidity into a reserve. The output is a collateral token representing ownership
 /// of the reserve liquidity pool.
@@ -36,8 +35,8 @@ export const depositInstruction = (
   collateralMint: PublicKey
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
-    BufferLayout.u8("instruction"),
-    Layout.uint64("liquidityAmount"),
+    BufferLayout.u8('instruction'),
+    Layout.uint64('liquidityAmount'),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
@@ -63,14 +62,12 @@ export const depositInstruction = (
   ];
   return new TransactionInstruction({
     keys,
-    programId: LENDING_PROGRAM_ID,
+    programId: TENDERIZE_PROGRAM_ID,
     data,
   });
 };
 
 export const calculateDepositAPY = (reserve: LendingReserve) => {
   const currentUtilization = calculateUtilizationRatio(reserve);
-
-  const borrowAPY = calculateBorrowAPY(reserve);
-  return currentUtilization * borrowAPY;
+  return currentUtilization;
 };

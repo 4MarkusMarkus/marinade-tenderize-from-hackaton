@@ -13,7 +13,7 @@ import {
   LendingReserve,
 } from './../models/lending';
 import { AccountLayout } from '@solana/spl-token';
-import { LENDING_PROGRAM_ID } from '../utils/ids';
+import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
 import {
   createUninitializedAccount,
   ensureSplAccount,
@@ -52,7 +52,7 @@ export const deposit = async (
 
   const [authority] = await PublicKey.findProgramAddress(
     [reserve.lendingMarket.toBuffer()], // which account should be authority
-    LENDING_PROGRAM_ID
+    TENDERIZE_PROGRAM_ID
   );
 
   const fromAccount = ensureSplAccount(
