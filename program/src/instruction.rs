@@ -100,13 +100,16 @@ pub enum StakePoolInstruction {
     ///   0. `[w]` Stake pool
     ///   1. `[]` Stake pool withdraw authority
     ///   2. `[w]` Reserve account (PDA)
-    ///   3. `[ws]` User account to take SOLs from
+    ///   3. `[ws?]` User account to take SOLs from (signed if not wrapped token)
     ///   4. `[w]` User account to receive pool tokens
     ///   5. `[w]` Account to receive pool fee tokens
     ///   6. `[w]` Pool token mint account
     ///   7. `[]` Rent sysvar
     ///   8. `[]` System program
     ///   9. `[]` Pool token program id,
+    ///   in case of wrapped SOLs:
+    ///   10. `[w]` Temp account (PDA)
+    ///   11. `[]` native token mint ("So11111111111111111111111111111111111111112")
     Deposit(u64),
 
     ///   7) Withdraw the token from the pool at the current ratio.
