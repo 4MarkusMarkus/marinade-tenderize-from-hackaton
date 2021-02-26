@@ -1,66 +1,78 @@
 import {
-  Account, Connection, PublicKey, sendAndConfirmTransaction, StakeProgram, SystemProgram, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, SYSVAR_STAKE_HISTORY_PUBKEY, Transaction, TransactionInstruction,
+  Account,
+  Connection,
+  PublicKey,
+  sendAndConfirmTransaction,
+  StakeProgram,
+  SystemProgram,
+  SYSVAR_CLOCK_PUBKEY,
+  SYSVAR_RENT_PUBKEY,
+  SYSVAR_STAKE_HISTORY_PUBKEY,
+  Transaction,
+  TransactionInstruction,
 } from '@solana/web3.js';
 
-const SPL_TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const SPL_TOKEN_PROGRAM_ID = new PublicKey(
+  'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+);
 const MIN_STAKE_ACCOUNT_BALANCE = 1000000000;
 
 export interface ValidatorInfo {
-  votePubkey: PublicKey,
-  balance: number,
-  lastUpdateEpoch: number,
-  stakeCount: number
+  votePubkey: PublicKey;
+  balance: number;
+  lastUpdateEpoch: number;
+  stakeCount: number;
 }
 
 export interface CreateStakePoolParams {
-  feeDenominator: number,
-  feeNumerator: number,
-};
+  feeDenominator: number;
+  feeNumerator: number;
+}
 
 export interface CreateValidatorStakeParams {
-  validator: PublicKey,
+  validator: PublicKey;
 }
 
 export interface AddValidatorParams {
-  validator: PublicKey,
+  validator: PublicKey;
 }
 
 export interface DepositParams {
-  userSource: Account,
-  amount: number,
-  userToken: PublicKey,
+  userSource: Account;
+  amount: number;
+  userToken: PublicKey;
 }
 
 export interface WithdrawParams {
-  userTokenSource: PublicKey,
-  amount: number,
-  userSolTarget: PublicKey,
+  userTokenSource: PublicKey;
+  amount: number;
+  userSolTarget: PublicKey;
 }
 
 export interface TestDepositParams {
-  amount: number,
-  userWallet: Account,
-  validators: PublicKey[]
+  amount: number;
+  userWallet: Account;
+  validators: PublicKey[];
 }
 
 export interface TestWithdrawParams {
-  amount: number,
-  userWallet: Account,
-  validators: PublicKey[]
+  amount: number;
+  userWallet: Account;
+  validators: PublicKey[];
 }
 
 export interface DepositReserveValidatorParam {
-  address: PublicKey,
-  amount: number,
-  stakeIndex: number
+  address: PublicKey;
+  amount: number;
+  stakeIndex: number;
 }
 
 export interface DepositReserveParams {
-  validators: DepositReserveValidatorParam[]
+  validators: DepositReserveValidatorParam[];
 }
 
 export interface UpdateListBalanceParams {
-  validators: PublicKey[]
+  validators: PublicKey[];
 }
 
 export class TenderizeProgram {
@@ -85,7 +97,8 @@ export class TenderizeProgram {
     creditListAccount: Account,
     poolMintToken: PublicKey,
     ownersFee: PublicKey,
-    creditReserve: PublicKey) {
+    creditReserve: PublicKey
+  ) {
     this.connection = connection;
     this.payerAccount = payerAccount;
     this.programAccount = programAccount;
@@ -103,61 +116,107 @@ export class TenderizeProgram {
   }
 
   async getReserveAddress(): Promise<PublicKey> {
-    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('reserve')], this.programId))[0];
+    return (
+      await PublicKey.findProgramAddress(
+        [this.stakePool.publicKey.toBuffer(), Buffer.from('reserve')],
+        this.programId
+      )
+    )[0];
   }
 
   async getDepositAuthority(): Promise<PublicKey> {
-    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('deposit')], this.programId))[0];
+    return (
+      await PublicKey.findProgramAddress(
+        [this.stakePool.publicKey.toBuffer(), Buffer.from('deposit')],
+        this.programId
+      )
+    )[0];
   }
 
   async getWithdrawAuthority(): Promise<PublicKey> {
-    return (await PublicKey.findProgramAddress([this.stakePool.publicKey.toBuffer(), Buffer.from('withdraw')], this.programId))[0];
+    return (
+      await PublicKey.findProgramAddress(
+        [this.stakePool.publicKey.toBuffer(), Buffer.from('withdraw')],
+        this.programId
+      )
+    )[0];
   }
 
   async getStakeForValidator(validator: PublicKey, index: number) {
     const indexBuffer = Buffer.alloc(4);
     indexBuffer.writeUInt32LE(index, 0);
-    return (await PublicKey.findProgramAddress([validator.toBuffer(), this.stakePool.publicKey.toBuffer(), indexBuffer], this.programId))[0];
+    return (
+      await PublicKey.findProgramAddress(
+        [
+          validator.toBuffer(),
+          this.stakePool.publicKey.toBuffer(),
+          indexBuffer,
+        ],
+        this.programId
+      )
+    )[0];
   }
 
   async createStakePool(params: CreateStakePoolParams): Promise<void> {
-    console.log(`Create stake pool ${this.stakePool.publicKey} with owners fee ${this.ownersFee}`);
-    const stakePoolLength = 1000 + 4 + 32 + 4 + 4 + 32 + 32 + 32 + 8 + 8 + 8 + 2 * 8;
+    console.log(
+      `Creating stake pool ${this.stakePool.publicKey} with owners fee ${this.ownersFee}`
+    );
+    const stakePoolLength =
+      1000 + 4 + 32 + 4 + 4 + 32 + 32 + 32 + 8 + 8 + 8 + 2 * 8;
     const validatorStakeListLength = 60000 + 4 + 4 + 1000 * (32 + 8 + 8);
     const creditListLength = 10000 * 64;
 
     const transaction = new Transaction();
-    transaction.add(SystemProgram.createAccount({
-      fromPubkey: this.payerAccount.publicKey,
-      newAccountPubkey: this.stakePool.publicKey,
-      lamports: await this.connection.getMinimumBalanceForRentExemption(stakePoolLength),
-      space: stakePoolLength,
-      programId: this.programId
-    }));
-    transaction.add(SystemProgram.createAccount({
-      fromPubkey: this.payerAccount.publicKey,
-      newAccountPubkey: this.validatorStakeListAccount.publicKey,
-      lamports: await this.connection.getMinimumBalanceForRentExemption(validatorStakeListLength),
-      space: validatorStakeListLength,
-      programId: this.programId
-    }));
-    transaction.add(SystemProgram.createAccount({
-      fromPubkey: this.payerAccount.publicKey,
-      newAccountPubkey: this.creditListAccount.publicKey,
-      lamports: await this.connection.getMinimumBalanceForRentExemption(creditListLength),
-      space: creditListLength,
-      programId: this.programId
-    }));
+    transaction.add(
+      SystemProgram.createAccount({
+        fromPubkey: this.payerAccount.publicKey,
+        newAccountPubkey: this.stakePool.publicKey,
+        lamports: await this.connection.getMinimumBalanceForRentExemption(
+          stakePoolLength
+        ),
+        space: stakePoolLength,
+        programId: this.programId,
+      })
+    );
+    transaction.add(
+      SystemProgram.createAccount({
+        fromPubkey: this.payerAccount.publicKey,
+        newAccountPubkey: this.validatorStakeListAccount.publicKey,
+        lamports: await this.connection.getMinimumBalanceForRentExemption(
+          validatorStakeListLength
+        ),
+        space: validatorStakeListLength,
+        programId: this.programId,
+      })
+    );
+    transaction.add(
+      SystemProgram.createAccount({
+        fromPubkey: this.payerAccount.publicKey,
+        newAccountPubkey: this.creditListAccount.publicKey,
+        lamports: await this.connection.getMinimumBalanceForRentExemption(
+          creditListLength
+        ),
+        space: creditListLength,
+        programId: this.programId,
+      })
+    );
     transaction.add(this.createStakePoolInstruction(params));
 
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
-      [this.payerAccount, this.owner, this.stakePool, this.validatorStakeListAccount, this.creditListAccount],
+      [
+        this.payerAccount,
+        this.owner,
+        this.stakePool,
+        this.validatorStakeListAccount,
+        this.creditListAccount,
+      ],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   createStakePoolInstruction(params: CreateStakePoolParams) {
@@ -170,14 +229,22 @@ export class TenderizeProgram {
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
         { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.creditListAccount.publicKey, isSigner: false, isWritable: true },
+        {
+          pubkey: this.validatorStakeListAccount.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: this.creditListAccount.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: false },
         { pubkey: this.ownersFee, isSigner: false, isWritable: false },
         { pubkey: this.creditReserve, isSigner: false, isWritable: true },
         { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+        { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ],
       programId: this.programAccount.publicKey,
       data,
@@ -185,21 +252,41 @@ export class TenderizeProgram {
   }
 
   async readState() {
-    const stateAccount = await this.connection.getAccountInfo(this.stakePool.publicKey, 'singleGossip');
-
+    const stateAccount = await this.connection.getAccountInfo(
+      this.stakePool.publicKey,
+      'singleGossip'
+    );
   }
 
   async readValidators(): Promise<ValidatorInfo[]> {
-    const validatorListAccount = await this.connection.getAccountInfo(this.validatorStakeListAccount.publicKey, 'singleGossip');
+    const validatorListAccount = await this.connection.getAccountInfo(
+      this.validatorStakeListAccount.publicKey,
+      'singleGossip'
+    );
     const validatorCount = validatorListAccount!.data.readUInt16LE(1);
-    const validators: ValidatorInfo[] = []
+    const validators: ValidatorInfo[] = [];
     for (let i = 0; i < validatorCount; ++i) {
       validators.push({
-        votePubkey: new PublicKey(validatorListAccount!.data.slice(3 + (32 + 8 + 8 + 4) * i, 3 + (32 + 8 + 8 + 4) * i + 32)),
-        balance: Number(validatorListAccount!.data.readBigUInt64LE(3 + (32 + 8 + 8 + 4) * i + 32)),
-        lastUpdateEpoch: Number(validatorListAccount!.data.readBigUInt64LE(3 + (32 + 8 + 8 + 4) * i + 32 + 8)),
-        stakeCount: validatorListAccount!.data.readUInt32LE(3 + (32 + 8 + 8 + 4) * i + 32 + 8 + 8),
-      })
+        votePubkey: new PublicKey(
+          validatorListAccount!.data.slice(
+            3 + (32 + 8 + 8 + 4) * i,
+            3 + (32 + 8 + 8 + 4) * i + 32
+          )
+        ),
+        balance: Number(
+          validatorListAccount!.data.readBigUInt64LE(
+            3 + (32 + 8 + 8 + 4) * i + 32
+          )
+        ),
+        lastUpdateEpoch: Number(
+          validatorListAccount!.data.readBigUInt64LE(
+            3 + (32 + 8 + 8 + 4) * i + 32 + 8
+          )
+        ),
+        stakeCount: validatorListAccount!.data.readUInt32LE(
+          3 + (32 + 8 + 8 + 4) * i + 32 + 8 + 8
+        ),
+      });
     }
     return validators;
   }
@@ -214,8 +301,9 @@ export class TenderizeProgram {
       [this.payerAccount, this.owner],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   async addValidatorInstruction(params: AddValidatorParams) {
@@ -224,9 +312,17 @@ export class TenderizeProgram {
 
     return new TransactionInstruction({
       keys: [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
+        {
+          pubkey: this.stakePool.publicKey,
+          isSigner: false,
+          isWritable: false,
+        },
         { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
+        {
+          pubkey: this.validatorStakeListAccount.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
         { pubkey: params.validator, isSigner: false, isWritable: false },
         { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
       ],
@@ -245,8 +341,9 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   async depositInstruction(params: DepositParams) {
@@ -257,9 +354,21 @@ export class TenderizeProgram {
     return new TransactionInstruction({
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
-        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
-        { pubkey: params.userSource.publicKey, isSigner: true, isWritable: true },
+        {
+          pubkey: await this.getWithdrawAuthority(),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: await this.getReserveAddress(),
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: params.userSource.publicKey,
+          isSigner: true,
+          isWritable: true,
+        },
         { pubkey: params.userToken, isSigner: false, isWritable: true },
         { pubkey: this.ownersFee, isSigner: false, isWritable: true },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
@@ -282,8 +391,9 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   async withdrawInstruction(params: WithdrawParams) {
@@ -294,8 +404,16 @@ export class TenderizeProgram {
     return new TransactionInstruction({
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
-        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
+        {
+          pubkey: await this.getWithdrawAuthority(),
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: await this.getReserveAddress(),
+          isSigner: false,
+          isWritable: true,
+        },
         { pubkey: params.userTokenSource, isSigner: false, isWritable: true },
         { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
         { pubkey: params.userSolTarget, isSigner: false, isWritable: true },
@@ -416,8 +534,9 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   async delegateReserveInstruction(params: DepositReserveParams) {
@@ -427,16 +546,41 @@ export class TenderizeProgram {
 
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-      { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-      { pubkey: await this.getWithdrawAuthority(), isSigner: false, isWritable: false },
-      { pubkey: await this.getDepositAuthority(), isSigner: false, isWritable: false },
-      { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
+      {
+        pubkey: this.validatorStakeListAccount.publicKey,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: await this.getWithdrawAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: await this.getDepositAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: await this.getReserveAddress(),
+        isSigner: false,
+        isWritable: true,
+      },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-      { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
-      { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },
-      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },];
+      {
+        pubkey: SYSVAR_STAKE_HISTORY_PUBKEY,
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: new PublicKey('StakeConfig11111111111111111111111111111111'),
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+    ];
 
     console.log(`Delegate from reserve into`);
     for (const validator of params.validators) {
@@ -446,15 +590,22 @@ export class TenderizeProgram {
       keys.push({
         pubkey: validator.address,
         isSigner: false,
-        isWritable: false
-      })
+        isWritable: false,
+      });
 
-      const stake = await this.getStakeForValidator(validator.address, validator.stakeIndex);
-      console.log(`Validator ${validator.address.toBase58()} with stake #${validator.stakeIndex} ${stake.toBase58()}`);
+      const stake = await this.getStakeForValidator(
+        validator.address,
+        validator.stakeIndex
+      );
+      console.log(
+        `Validator ${validator.address.toBase58()} with stake #${
+          validator.stakeIndex
+        } ${stake.toBase58()}`
+      );
       keys.push({
         pubkey: stake,
         isSigner: false,
-        isWritable: true
+        isWritable: true,
       });
     }
 
@@ -467,12 +618,16 @@ export class TenderizeProgram {
 
   async delegateReserveBatch(totalAmount: number) {
     if (totalAmount < MIN_STAKE_ACCOUNT_BALANCE) {
-      throw Error("Too low delegation");
+      throw Error('Too low delegation');
     }
 
     const validators = await this.readValidators();
-    const stakeTotal = validators.map((v) => v.balance).reduce((a, b) => a + b, 0);
-    const targetAmount = Math.ceil((stakeTotal + totalAmount) / validators.length);
+    const stakeTotal = validators
+      .map((v) => v.balance)
+      .reduce((a, b) => a + b, 0);
+    const targetAmount = Math.ceil(
+      (stakeTotal + totalAmount) / validators.length
+    );
 
     const instructions: DepositReserveValidatorParam[] = [];
     let amountLeft = totalAmount;
@@ -485,7 +640,10 @@ export class TenderizeProgram {
         continue;
       }
 
-      let delegateAmount = Math.min(targetAmount - validator.balance, amountLeft);
+      let delegateAmount = Math.min(
+        targetAmount - validator.balance,
+        amountLeft
+      );
 
       amountLeft -= delegateAmount;
 
@@ -496,38 +654,57 @@ export class TenderizeProgram {
 
       let currentEpochStakeIndex = -1;
       for (let index = 0; index < validator.stakeCount; index++) {
-        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, index);
-        const stakeData = await this.connection.getStakeActivation(stakeAddress, 'singleGossip');
-        if ((stakeData.state == 'activating') && (stakeData.active == 0)) {
+        const stakeAddress = await this.getStakeForValidator(
+          validator.votePubkey,
+          index
+        );
+        const stakeData = await this.connection.getStakeActivation(
+          stakeAddress,
+          'singleGossip'
+        );
+        if (stakeData.state == 'activating' && stakeData.active == 0) {
           currentEpochStakeIndex = index;
           break;
         }
       }
 
       if (currentEpochStakeIndex >= 0) {
-        console.log(`Redelegate to stake #${currentEpochStakeIndex} ${await this.getStakeForValidator(validator.votePubkey, currentEpochStakeIndex)}`);
+        console.log(
+          `Redelegate to stake #${currentEpochStakeIndex} ${await this.getStakeForValidator(
+            validator.votePubkey,
+            currentEpochStakeIndex
+          )}`
+        );
         instructions.push({
           address: validator.votePubkey,
           amount: delegateAmount,
-          stakeIndex: currentEpochStakeIndex
+          stakeIndex: currentEpochStakeIndex,
         });
         continue;
       }
 
       let firstFreeIndex = validator.stakeCount;
       for (let index = 0; index < validator.stakeCount; index++) {
-        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, index);
+        const stakeAddress = await this.getStakeForValidator(
+          validator.votePubkey,
+          index
+        );
         const stakeAccount = await this.connection.getAccountInfo(stakeAddress);
-        if (!stakeAccount || (stakeAccount.owner == SystemProgram.programId)) {
+        if (!stakeAccount || stakeAccount.owner == SystemProgram.programId) {
           firstFreeIndex = index;
         }
       }
 
-      console.log(`Init stake #${firstFreeIndex} ${await this.getStakeForValidator(validator.votePubkey, firstFreeIndex)}`);
+      console.log(
+        `Init stake #${firstFreeIndex} ${await this.getStakeForValidator(
+          validator.votePubkey,
+          firstFreeIndex
+        )}`
+      );
       instructions.push({
         address: validator.votePubkey,
         amount: delegateAmount,
-        stakeIndex: firstFreeIndex
+        stakeIndex: firstFreeIndex,
       });
     }
 
@@ -536,11 +713,13 @@ export class TenderizeProgram {
     }
 
     await this.delegateReserve({
-      validators: instructions
-    })
+      validators: instructions,
+    });
   }
 
-  async updateListBalanceReserve(params: UpdateListBalanceParams): Promise<void> {
+  async updateListBalanceReserve(
+    params: UpdateListBalanceParams
+  ): Promise<void> {
     const transaction = new Transaction();
     transaction.add(await this.updateListBalanceInstruction(params));
     await sendAndConfirmTransaction(
@@ -549,34 +728,44 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
-  async updateListBalanceInstruction(params: UpdateListBalanceParams): Promise<TransactionInstruction> {
+  async updateListBalanceInstruction(
+    params: UpdateListBalanceParams
+  ): Promise<TransactionInstruction> {
     const data = Buffer.alloc(1);
     let p = data.writeUInt8(4, 0);
 
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
-      { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },];
+      {
+        pubkey: this.validatorStakeListAccount.publicKey,
+        isSigner: false,
+        isWritable: true,
+      },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+    ];
 
     const allValidators = await this.readValidators();
     for (const validator of params.validators) {
       keys.push({
         pubkey: validator,
         isSigner: false,
-        isWritable: false
-      })
+        isWritable: false,
+      });
 
-      const validatorInfo = allValidators.find((v) => v.votePubkey.equals(validator));
+      const validatorInfo = allValidators.find((v) =>
+        v.votePubkey.equals(validator)
+      );
       for (let i = 0; i < validatorInfo!.stakeCount; ++i) {
         const stake = await this.getStakeForValidator(validator, i);
         keys.push({
           pubkey: stake,
           isSigner: false,
-          isWritable: false
+          isWritable: false,
         });
       }
     }
@@ -597,8 +786,9 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 
   async updatePoolBalanceInstruction(): Promise<TransactionInstruction> {
@@ -608,8 +798,16 @@ export class TenderizeProgram {
     return new TransactionInstruction({
       keys: [
         { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: false },
-        { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: false },
+        {
+          pubkey: this.validatorStakeListAccount.publicKey,
+          isSigner: false,
+          isWritable: false,
+        },
+        {
+          pubkey: await this.getReserveAddress(),
+          isSigner: false,
+          isWritable: false,
+        },
         { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
       ],
       programId: this.programId,
@@ -618,11 +816,13 @@ export class TenderizeProgram {
   }
 
   async updatePool(): Promise<void> {
-    console.log("Updating pool");
+    console.log('Updating pool');
     const transaction = new Transaction();
-    transaction.add(await this.updateListBalanceInstruction({
-      validators: (await this.readValidators()).map((v) => v.votePubkey)
-    }));
+    transaction.add(
+      await this.updateListBalanceInstruction({
+        validators: (await this.readValidators()).map((v) => v.votePubkey),
+      })
+    );
     transaction.add(await this.updatePoolBalanceInstruction());
     await sendAndConfirmTransaction(
       this.connection,
@@ -630,7 +830,8 @@ export class TenderizeProgram {
       [this.payerAccount],
       {
         commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip'
-      });
+        preflightCommitment: 'singleGossip',
+      }
+    );
   }
 }

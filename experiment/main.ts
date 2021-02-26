@@ -1,42 +1,69 @@
-import { Account, PublicKey, sendAndConfirmTransaction, SystemInstruction, SystemProgram, Transaction } from '@solana/web3.js';
+import {
+  Account,
+  PublicKey,
+  sendAndConfirmTransaction,
+  SystemInstruction,
+  SystemProgram,
+  Transaction,
+} from '@solana/web3.js';
 import { TenderizeProgram } from './tenderize';
 import { Tester } from './tester';
 import { execShellCommand } from './util/shell';
 
 async function main() {
+  console.log('\n ...Start by building Tester...');
   const tester = await Tester.build();
+
+  console.log('\n ...Initiliaze Tenderize...');
   await tester.initTenderize();
 
   const validators = await tester.getValidators();
+
   if (true) {
+    console.log('\n ...Create stake pool...');
     await tester.createStakePool();
+
+    console.log('\n ...Add validators...');
     for (const validator of validators) {
       await tester.tenderize!.addValidator({
         validator,
-      })
+      });
     }
   }
+
   if (true) {
+    console.log('\n ...Calling deposit function...');
+
     await tester.tenderize!.deposit({
       userSource: tester.payerAccount,
       amount: 100000000000,
       userToken: tester.userTokenAccount.publicKey,
-    })
+    });
   }
 
   if (true) {
-    await execShellCommand(`spl-token approve ${tester.userTokenAccount.publicKey} 1 ${await (await tester.tenderize!.getWithdrawAuthority()).toBase58()}`)
+    console.log('\n ...Approving token...');
+    await execShellCommand(
+      `spl-token approve ${tester.userTokenAccount.publicKey} 1 ${await (
+        await tester.tenderize!.getWithdrawAuthority()
+      ).toBase58()}`
+    );
 
+    console.log('\n ...Calling withdraw function...');
     await tester.tenderize!.withdraw({
       userTokenSource: tester.userTokenAccount.publicKey,
       amount: 1000000000,
       userSolTarget: tester.payerAccount.publicKey,
-    })
+    });
   }
   if (true) {
+    console.log('\n ...Delegating reserve...');
+
     await tester.tenderize!.delegateReserveBatch(10000000000);
   }
   if (true) {
+    console.log('\n ...Updating pool...');
+
     await tester.tenderize!.updatePool();
   }
 
@@ -45,8 +72,8 @@ async function main() {
 
 main().then(
   () => process.exit(),
-  err => {
+  (err) => {
     console.error(err);
     process.exit(-1);
-  },
+  }
 );
