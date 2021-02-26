@@ -6,14 +6,8 @@ import {
 } from '@solana/web3.js';
 import { sendTransaction } from '../contexts/connection';
 import { notify } from '../utils/notifications';
-import {
-  accrueInterestInstruction,
-  depositInstruction,
-  initReserveInstruction,
-  LendingReserve,
-} from './../models/lending';
+import { depositInstruction, LendingReserve } from './../models/lending';
 import { AccountLayout } from '@solana/spl-token';
-import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
 import {
   createUninitializedAccount,
   ensureSplAccount,
@@ -50,10 +44,10 @@ export const deposit = async (
     AccountLayout.span
   );
 
-  const [authority] = await PublicKey.findProgramAddress(
-    [reserve.lendingMarket.toBuffer()], // which account should be authority
-    TENDERIZE_PROGRAM_ID
-  );
+  // const [authority] = await PublicKey.findProgramAddress(
+  //   [reserve.lendingMarket.toBuffer()], // which account should be authority
+  //   TENDERIZE_PROGRAM_ID
+  // );
 
   const fromAccount = ensureSplAccount(
     instructions,
@@ -84,7 +78,7 @@ export const deposit = async (
       instructions,
       cleanupInstructions,
       accountRentExempt,
-      reserve.collateralMint,
+      reserve.poolMint,
       signers
     );
   } else {
@@ -97,14 +91,14 @@ export const deposit = async (
   }
 
   if (isInitialized) {
-    instructions.push(accrueInterestInstruction(reserveAddress));
+    // instructions.push(accrueInterestInstruction(reserveAddress));
 
     // deposit
     instructions.push(
       depositInstruction(
         amountLamports,
         fromAccount,
-        toAccount,
+        toAccount
         /*reserve.lendingMarket,
         authority,
         transferAuthority.publicKey,

@@ -29,9 +29,9 @@ export const DepositInput = (props: {
   const reserve = props.reserve;
   const address = props.address;
 
-  const name = useTokenName(reserve?.liquidityMint);
+  const name = useTokenName(reserve?.poolMint);
   const { accounts: fromAccounts, balance, balanceLamports } = useUserBalance(
-    reserve?.liquidityMint
+    reserve?.poolMint
   );
 
   const convert = useCallback(
@@ -107,7 +107,7 @@ export const DepositInput = (props: {
         >
           <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
           <div className='token-input'>
-            <TokenIcon mintAddress={reserve?.liquidityMint} />
+            <TokenIcon mintAddress={reserve?.poolMint} />
             <NumericInput
               value={value}
               onChange={setValue}
