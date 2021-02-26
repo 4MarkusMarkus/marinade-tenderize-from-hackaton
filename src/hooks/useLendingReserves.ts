@@ -12,6 +12,8 @@ export const getLendingReserves = () => {
     .filter((acc) => acc !== undefined) as ParsedAccount<LendingReserve>[];
 };
 
+console.log('getlending', getLendingReserves());
+
 export function useLendingReserves() {
   const [reserveAccounts, setReserveAccounts] = useState<
     ParsedAccount<LendingReserve>[]
@@ -41,9 +43,13 @@ export function useLendingReserve(address?: string | PublicKey) {
   if (typeof address === 'string') {
     const token: KnownToken | null = getTokenByName(tokenMap, address);
     if (token) {
+      console.log('mint address', token.mintAddress);
+      console.log('reserveAccounts', reserveAccounts);
       const account = reserveAccounts.filter(
         (acc) => acc.info.liquidityMint.toBase58() === token.mintAddress
       )[0];
+      console.log(account);
+
       if (account) {
         addressName = account.pubkey;
       }
