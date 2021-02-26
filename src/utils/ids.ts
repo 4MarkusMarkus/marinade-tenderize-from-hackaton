@@ -48,7 +48,7 @@ export const setProgramIds = (envName: string) => {
 
 export const programIds = () => {
   return {
-    tenderize: TENDERIZE_PROGRAM_ID,
     token: TOKEN_PROGRAM_ID,
+    // tenderize: TENDERIZE_PROGRAM_ID,
   };
 };

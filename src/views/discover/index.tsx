@@ -1,9 +1,9 @@
 import React from 'react';
-// import { useLendingReserve } from '../../hooks';
+import { useLendingReserve } from '../../hooks';
 // import { useParams } from 'react-router-dom';
 // import { Link } from 'react-router-dom';
 
-// import { DepositInput } from '../../components/DepositInput';
+import { DepositInput } from '../../components/DepositInput';
 import { Button, Card, Tabs, InputNumber } from 'antd';
 import { Line } from 'react-chartjs-2';
 
@@ -29,14 +29,15 @@ export const DiscoverView = () => {
   };
 
   // const { id } = useParams<{ id: string }>();
-  // const lendingReserve = useLendingReserve(
-  //   'DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'
-  // );
-  // const reserve = lendingReserve?.info;
+  const lendingReserve = useLendingReserve(
+    'Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm'
+  );
+  console.log('Reserve:', lendingReserve);
+  const reserve = lendingReserve?.info;
 
-  // if (!reserve || !lendingReserve) {
-  //   return null;
-  // }
+  if (!reserve || !lendingReserve) {
+    return null;
+  }
 
   return (
     <div
@@ -139,11 +140,11 @@ export const DiscoverView = () => {
                 <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
-              {/* <DepositInput
+              <DepositInput
                 className='card-fill'
                 reserve={reserve}
                 address={lendingReserve.pubkey}
-              /> */}
+              />
               <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
               <span> SOL</span>
               <br />
