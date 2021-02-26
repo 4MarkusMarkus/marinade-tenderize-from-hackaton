@@ -47,7 +47,7 @@
     "deploy": "gh-pages -d build",
     "deploy:ar": "arweave deploy-dir build --key-file ",
     "format:fix": "prettier --write \"**/*.+(js|jsx|ts|tsx|json|css|md)\"",
-    "build:program": "cargo build-bpf --manifest-path=./program/Cargo.toml --bpf-out-dir=program/dist && solana program deploy program/dist/solana_bpf_tenderize.so --program-id keys/solana_bpf_tenderize-keypair.json",
+    "build:program": "cargo build-bpf --manifest-path=./program/Cargo.toml --bpf-out-dir=program/dist && solana program deploy program/dist/solana_bpf_tenderize.so --program-id keys/solana_bpf_tenderize-keypair.json --upgrade-authority keys/solana_bpf_tenderize-keypair.json",
     "test-validator": "rm -rf test-ledger && solana-test-validator"
   },
   "eslintConfig": {

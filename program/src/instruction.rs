@@ -109,7 +109,7 @@ pub enum StakePoolInstruction {
     ///   9. `[]` Pool token program id,
     ///   in case of wrapped SOLs:
     ///   10. `[w]` Temp account (PDA)
-    ///   11. `[]` native token mint ("So11111111111111111111111111111111111111112")
+    ///   11. `[w]` native token mint ("So11111111111111111111111111111111111111112")
     Deposit(u64),
 
     ///   7) Withdraw the token from the pool at the current ratio.

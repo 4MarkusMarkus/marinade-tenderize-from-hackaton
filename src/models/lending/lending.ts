@@ -2,7 +2,7 @@ export enum LendingInstruction {
   InitLendingMarket = 0,
   InitReserve = 1,
   InitObligation = 2,
-  DepositReserveLiquidity = 3,
+  DepositReserveLiquidity = 6,
   WithdrawReserveLiquidity = 4,
   BorrowLiquidity = 5,
   RepayObligationLiquidity = 6,

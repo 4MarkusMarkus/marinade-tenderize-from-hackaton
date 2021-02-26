@@ -105,15 +105,16 @@ export const deposit = async (
         amountLamports,
         fromAccount,
         toAccount,
-        reserve.lendingMarket,
+        /*reserve.lendingMarket,
         authority,
         transferAuthority.publicKey,
         reserveAddress,
         reserve.liquiditySupply,
-        reserve.collateralMint
+        reserve.collateralMint*/
       )
     );
   } else {
+    /* no initialisation in frontend
     // TODO: finish reserve init
     const MAX_UTILIZATION_RATE = 80;
     instructions.push(
@@ -132,7 +133,7 @@ export const deposit = async (
         transferAuthority.publicKey,
         reserve.dexMarket
       )
-    );
+    );*/
   }
 
   try {
