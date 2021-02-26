@@ -14,56 +14,6 @@ use solana_program::{
 use std::convert::TryFrom;
 use std::mem::size_of;
 
-/// Reserve pool for immediate withdrawal of staked SOL tokens
-#[repr(C)]
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct ReservePool {
-    /// TODO not sure whether to include other accounts and fees
-    /// Reserve pool version
-    pub version: u8,
-    /// total SOL tokens pooled
-    pub total_amount: u64,
-    /// Pool token program id
-    pub token_program_id: Pubkey,
-}
-
-impl ReservePool {
-    /// Length of state data when serialized
-    pub const LEN: usize = size_of::<ReservePool>();
-
-    /// Ratio of tokens to be pooled from the deposit
-    pub const DEPOSIT_RATIO: f64 = 0.1;
-
-    /// Check if ReservePool is initialized
-    pub fn is_initialized(&self) -> bool {
-        self.version > 0
-    }
-
-    /// Deserializes a byte buffer into a [ReservePool](struct.ReservePool.html).
-    pub fn deserialize(input: &[u8]) -> Result<ReservePool, ProgramError> {
-        if input.len() < size_of::<ReservePool>() {
-            return Err(ProgramError::InvalidAccountData);
-        }
-
-        let reserve_pool: &ReservePool =
-            unsafe { &*(&input[0] as *const u8 as *const ReservePool) };
-
-        Ok(*reserve_pool)
-    }
-
-    /// Serializes [ReservePool](struct.ReservePool.html) into a byte buffer.
-    pub fn serialize(&self, output: &mut [u8]) -> ProgramResult {
-        if output.len() < size_of::<ReservePool>() {
-            return Err(ProgramError::InvalidAccountData);
-        }
-        #[allow(clippy::cast_ptr_alignment)]
-        let value = unsafe { &mut *(&mut output[0] as *mut u8 as *mut ReservePool) };
-        *value = *self;
-
-        Ok(())
-    }
-}
-
 /// Initialized program details.
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -174,7 +124,7 @@ impl StakePool {
     }
 
     /// Check owner validity and signature
-    pub fn check_owner(&self, owner_info: &AccountInfo) -> Result<(), ProgramError> {
+    pub fn check_owner(&self, owner_info: &AccountInfo) -> ProgramResult {
         if *owner_info.key != self.owner {
             return Err(StakePoolError::WrongOwner.into());
         }
@@ -210,26 +160,6 @@ impl StakePool {
         *value = *self;
 
         Ok(())
-    }
-
-    pub(crate) fn read_validator_stake_list<'b, 'a: 'b, I: Iterator<Item = &'b AccountInfo<'a>>>(
-        &self,
-        account_info_iter: &mut I,
-    ) -> Result<(ValidatorStakeList, &'b AccountInfo<'a>), ProgramError> {
-        let validator_stake_list_info = next_account_info(account_info_iter)?;
-
-        // Check validator stake account list storage
-        if *validator_stake_list_info.key != self.validator_stake_list {
-            return Err(StakePoolError::InvalidValidatorStakeList.into());
-        }
-
-        // Read validator stake list account and check if it is valid
-        let validator_stake_list =
-            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
-        if !validator_stake_list.is_initialized() {
-            return Err(StakePoolError::InvalidState.into());
-        }
-        Ok((validator_stake_list, validator_stake_list_info))
     }
 }
 

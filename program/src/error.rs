@@ -79,6 +79,9 @@ pub enum StakePoolError {
     /// Validator list is full. Can't add more validators
     #[error("ValidatorListOverflow")]
     ValidatorListOverflow,
+    /// Withdraw all stakes before validator removal
+    #[error("ValidatorHasStakes")]
+    ValidatorHasStakes,
     /// First deposit must be greater than empty account rent
     #[error("FirstDepositIsTooSmall")]
     FirstDepositIsTooSmall,
