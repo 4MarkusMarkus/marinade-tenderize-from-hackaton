@@ -19,19 +19,12 @@ async function main() {
 
   const validators = await tester.getValidators();
 
-  if (true) {
+  let state = await tester.tenderize!.readState();
+
+  if (!state || state.version == 0) {
     console.log('\n ...Create stake pool...');
     await tester.createStakePool();
 
-    console.log('\n ...Add validators...');
-    for (const validator of validators) {
-      await tester.tenderize!.addValidator({
-        validator,
-      });
-    }
-  }
-
-  if (true) {
     console.log('\n ...Calling deposit function...');
 
     await tester.tenderize!.deposit({
@@ -39,6 +32,17 @@ async function main() {
       amount: 100000000000,
       userToken: tester.userTokenAccount.publicKey,
     });
+
+    state = await tester.tenderize!.readState();
+  }
+
+  if ((await tester.tenderize!.readValidators()).length == 0) {
+    console.log('\n ...Add validators...');
+    for (const validator of validators) {
+      await tester.tenderize!.addValidator({
+        validator,
+      });
+    }
   }
 
   if (true) {

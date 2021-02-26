@@ -75,6 +75,22 @@ export interface UpdateListBalanceParams {
   validators: PublicKey[];
 }
 
+export interface State {
+  version: number; // >0 for initialized
+  owner: PublicKey;
+  validatorStakeList: PublicKey;
+  creditList: PublicKey;
+  poolMint: PublicKey;
+  ownerFeeAccount: PublicKey;
+  creditReserve: PublicKey;
+  tokenProgram: PublicKey;
+  stakeTotal: bigint;
+  poolTotal: bigint;
+  lastEpochUpdate: bigint;
+  feeDenominator: bigint;
+  feeNumerator: bigint;
+}
+
 export class TenderizeProgram {
   connection: Connection;
   payerAccount: Account;
@@ -251,11 +267,33 @@ export class TenderizeProgram {
     });
   }
 
-  async readState() {
+  async readState(): Promise<State | null> {
     const stateAccount = await this.connection.getAccountInfo(
       this.stakePool.publicKey,
       'singleGossip'
     );
+
+    if (!stateAccount || stateAccount.data.length == 0) {
+      return null;
+    }
+
+    return {
+      version: stateAccount.data.readUInt8(0),
+      owner: new PublicKey(stateAccount.data.slice(1, 33)),
+      // 2 bytes of bump seeds. Not useful
+      validatorStakeList: new PublicKey(stateAccount.data.slice(35, 67)),
+      creditList: new PublicKey(stateAccount.data.slice(67, 99)),
+      poolMint: new PublicKey(stateAccount.data.slice(99, 131)),
+      ownerFeeAccount: new PublicKey(stateAccount.data.slice(131, 163)),
+      creditReserve: new PublicKey(stateAccount.data.slice(163, 195)),
+      tokenProgram: new PublicKey(stateAccount.data.slice(195, 227)),
+      // Padding
+      stakeTotal: stateAccount.data.readBigUInt64LE(232),
+      poolTotal: stateAccount.data.readBigUInt64LE(240),
+      lastEpochUpdate: stateAccount.data.readBigUInt64LE(248),
+      feeDenominator: stateAccount.data.readBigUInt64LE(256),
+      feeNumerator: stateAccount.data.readBigUInt64LE(264),
+    }
   }
 
   async readValidators(): Promise<ValidatorInfo[]> {
@@ -598,9 +636,7 @@ export class TenderizeProgram {
         validator.stakeIndex
       );
       console.log(
-        `Validator ${validator.address.toBase58()} with stake #${
-          validator.stakeIndex
-        } ${stake.toBase58()}`
+        `Validator ${validator.address.toBase58()} with stake #${validator.stakeIndex} ${stake.toBase58()}`
       );
       keys.push({
         pubkey: stake,
@@ -622,6 +658,9 @@ export class TenderizeProgram {
     }
 
     const validators = await this.readValidators();
+    if (validators.length == 0) {
+      throw Error("No validator added");
+    }
     const stakeTotal = validators
       .map((v) => v.balance)
       .reduce((a, b) => a + b, 0);
