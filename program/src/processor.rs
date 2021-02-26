@@ -2,7 +2,9 @@
 
 use crate::{
     error::StakePoolError,
-    instruction::{DelegateReserveInstruction, InitArgs, StakePoolInstruction},
+    instruction::{
+        DelegateReserveInstruction, InitArgs, MergeStakesInstruction, StakePoolInstruction,
+    },
     stake,
     state::{
         CreditList, CreditRecord, StakePool, ValidatorStakeInfo, ValidatorStakeList,
@@ -2244,6 +2246,7 @@ impl Processor {
         }
 
         stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
+        stake_pool.check_authority_withdraw(withdraw_info.key, program_id, stake_pool_info.key)?;
 
         let (reserve_address, reserve_bump) =
             Self::get_reserve_adderess(program_id, stake_pool_info.key);
@@ -2283,21 +2286,26 @@ impl Processor {
                     return Err(ProgramError::InsufficientFunds);
                 }
 
+                if instruction.stake_index > validator.stake_count {
+                    return Err(StakePoolError::InvalidStakeIndex.into());
+                }
+
                 let stake_bump_seed = validator.check_validator_stake_address(
                     program_id,
                     stake_pool_info.key,
-                    instruction.stake_index as u32,
+                    instruction.stake_index,
                     stake_account_info.key,
                 )?;
 
                 if *stake_account_info.owner == system_program::id() {
+                    // non existent account
                     Self::init_stake(
                         validator,
                         validator_vote_info,
                         stake_account_info,
                         stake_bump_seed,
                         stake_pool_info.key,
-                        instruction.stake_index as u32,
+                        instruction.stake_index,
                         instruction.amount,
                         reserve_account_info,
                         deposit_info,
@@ -2311,6 +2319,7 @@ impl Processor {
                         reserve_signer_seeds,
                     )?;
                 } else {
+                    // must be stake account
                     Self::redelegate_stake(
                         validator,
                         validator_vote_info,
@@ -2329,8 +2338,8 @@ impl Processor {
                     )?;
                 }
 
-                if instruction.stake_index as u32 >= validator.stake_count {
-                    validator.stake_count = instruction.stake_index as u32 + 1;
+                if instruction.stake_index >= validator.stake_count {
+                    validator.stake_count = instruction.stake_index + 1;
                 }
 
                 total_amount += instruction.amount;
@@ -2345,6 +2354,103 @@ impl Processor {
         // ? Only update stake total if the last state update epoch is current
         stake_pool.stake_total += total_amount;
         stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    /// Process MergeStakes
+    pub fn process_merge_stakes(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        instructions: &[MergeStakesInstruction],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let deposit_info = next_account_info(account_info_iter)?;
+        // Staking program id
+        let stake_program_info = next_account_info(account_info_iter)?;
+        // Clock sysvar account
+        let clock_info = next_account_info(account_info_iter)?;
+        // let clock = &Clock::from_account_info(clock_info)?;
+        // Stake history sysvar account
+        let stake_history_info = next_account_info(account_info_iter)?;
+        // let stake_history = &StakeHistory::from_account_info(stake_history_info)?;
+
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != stake_pool.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let mut validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
+
+        let deposit_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_DEPOSIT,
+            &[stake_pool.deposit_bump_seed],
+        ];
+
+        let mut changed = false;
+        for instruction in instructions {
+            let main_stake_account_info = next_account_info(account_info_iter)?;
+            let additional_stake_account_info = next_account_info(account_info_iter)?;
+
+            if let Some(validator) = validator_stake_list
+                .validators
+                .iter_mut()
+                .find(|validator| validator.validator_account == instruction.validator_address)
+            {
+                if instruction.main_index >= validator.stake_count
+                    || instruction.additional_index >= validator.stake_count
+                    || instruction.main_index >= instruction.additional_index
+                {
+                    return Err(StakePoolError::InvalidStakeIndex.into());
+                }
+
+                invoke_signed(
+                    &stake::merge(
+                        main_stake_account_info.key,
+                        additional_stake_account_info.key,
+                        deposit_info.key,
+                    ),
+                    &[
+                        stake_program_info.clone(),
+                        main_stake_account_info.clone(),
+                        additional_stake_account_info.clone(),
+                        clock_info.clone(),
+                        stake_history_info.clone(),
+                    ],
+                    &[deposit_signer_seeds],
+                )?;
+
+                if instruction.additional_index + 1 == validator.stake_count {
+                    validator.stake_count -= 1;
+                    changed = true;
+                }
+            } else {
+                msg!(
+                    "Unexpected validator account {}",
+                    instruction.validator_address
+                );
+                return Err(StakePoolError::ValidatorNotFound.into());
+            }
+        }
+
+        if changed {
+            validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+        }
 
         Ok(())
     }
@@ -2404,6 +2510,13 @@ impl Processor {
                 );
                 Self::process_delegate_reserve(program_id, accounts, &instructions)
             }
+            StakePoolInstruction::MergeStakes(instructions) => {
+                msg!(
+                    "Instruction: MergeStakes with {} instructions",
+                    instructions.len()
+                );
+                Self::process_merge_stakes(program_id, accounts, &instructions)
+            }
         }
     }
 }
@@ -2443,6 +2556,7 @@ impl PrintProgramError for StakePoolError {
             StakePoolError::FirstDepositIsTooSmall => msg!("Error: First deposit must be at least enough for rent"),
             StakePoolError::WrongCreditOwner => msg!("Error: Wrong credit owner"),
             StakePoolError::WrongCreditState => msg!("Error: Wrong credit satte"),
+            StakePoolError::InvalidStakeIndex => msg!("Error: Invalid stake index"),
         }
     }
 }

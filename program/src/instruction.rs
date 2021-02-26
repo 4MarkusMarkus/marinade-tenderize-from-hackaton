@@ -28,13 +28,25 @@ pub struct InitArgs {
     pub fee: Fee,
 }
 /// Delegate Reserve Instruction
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DelegateReserveInstruction {
     /// amount to delegate
     pub amount: u64,
     /// stake index
-    pub stake_index: u64,
+    pub stake_index: u32,
+}
+
+/// Merge stakes Instruction
+#[repr(C, packed)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct MergeStakesInstruction {
+    /// Validator vote pubkey
+    pub validator_address: Pubkey,
+    /// Merge target
+    pub main_index: u32,
+    /// Merge source
+    pub additional_index: u32,
 }
 /// Instructions supported by the StakePool program.
 #[repr(C)]
@@ -185,8 +197,19 @@ pub enum StakePoolInstruction {
     ///   8.  `[]` Stake history sysvar that carries stake warmup/cooldown history
     ///   9.  `[]` Address of config account that carries stake config
     ///   10. `[]` Rent sysvar
-    ///   11. ..11+6N ` [w]*6 N times validator + 5 stake accounts
+    ///   11. ..11+2N ` [] validator [w] stake
     DelegateReserve(Vec<DelegateReserveInstruction>),
+
+    ///   13) Delegate reserve to stake account
+    ///
+    ///   0.  `[]` StakePool
+    ///   1.  `[w]` Validator stake list storage account
+    ///   2.  `[]` Stake pool deposit authority
+    ///   4.  `[]` Stake program
+    ///   5.  `[]` Clock sysvar
+    ///   6.  `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   7. ..7+2N ` [] validator [w] stake A [w] stake B
+    MergeStakes(Vec<MergeStakesInstruction>),
 }
 
 impl StakePoolInstruction {
@@ -243,6 +266,26 @@ impl StakePoolInstruction {
                     )
                 };
                 Self::DelegateReserve(instructions.to_vec())
+            }
+            13 => {
+                let count: &u32 = unpack(input)?;
+                if input.len() < 1 + 4 + *count as usize * mem::size_of::<MergeStakesInstruction>()
+                {
+                    msg!(
+                        "Expeced size to be {} but got {} sizeof = {}",
+                        1 + 4 + *count as usize * mem::size_of::<MergeStakesInstruction>(),
+                        input.len(),
+                        mem::size_of::<MergeStakesInstruction>()
+                    );
+                    return Err(ProgramError::InvalidArgument);
+                }
+                let instructions = unsafe {
+                    std::slice::from_raw_parts(
+                        &input[1 + 4] as *const u8 as *const MergeStakesInstruction,
+                        *count as usize,
+                    )
+                };
+                Self::MergeStakes(instructions.to_vec())
             }
             _ => return Err(ProgramError::InvalidAccountData),
         })

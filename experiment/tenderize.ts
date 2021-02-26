@@ -71,6 +71,16 @@ export interface DepositReserveParams {
   validators: DepositReserveValidatorParam[];
 }
 
+export interface StakePair {
+  validator: PublicKey;
+  mainIndex: number;
+  additionalIndex: number;
+}
+
+export interface MergeStakesParams {
+  stakePairs: StakePair[];
+}
+
 export interface UpdateListBalanceParams {
   validators: PublicKey[];
 }
@@ -578,7 +588,7 @@ export class TenderizeProgram {
   }
 
   async delegateReserveInstruction(params: DepositReserveParams) {
-    const data = Buffer.alloc(1 + 4 + (8 + 8) * params.validators.length);
+    const data = Buffer.alloc(1 + 4 + (8 + 4) * params.validators.length);
     let p = data.writeUInt8(12, 0);
     p = data.writeUInt32LE(params.validators.length, p);
 
@@ -623,7 +633,7 @@ export class TenderizeProgram {
     console.log(`Delegate from reserve into`);
     for (const validator of params.validators) {
       p = data.writeBigUInt64LE(BigInt(validator.amount), p);
-      p = data.writeBigUInt64LE(BigInt(validator.stakeIndex), p);
+      p = data.writeUInt32LE(validator.stakeIndex, p);
 
       keys.push({
         pubkey: validator.address,
@@ -697,14 +707,16 @@ export class TenderizeProgram {
           validator.votePubkey,
           index
         );
-        const stakeData = await this.connection.getStakeActivation(
-          stakeAddress,
-          'singleGossip'
-        );
-        if (stakeData.state == 'activating' && stakeData.active == 0) {
-          currentEpochStakeIndex = index;
-          break;
-        }
+        try {
+          const stakeData = await this.connection.getStakeActivation(
+            stakeAddress,
+            'singleGossip'
+          );
+          if (stakeData.state == 'activating' && stakeData.active == 0) {
+            currentEpochStakeIndex = index;
+            break;
+          }
+        } catch (e) { }
       }
 
       if (currentEpochStakeIndex >= 0) {
@@ -753,6 +765,110 @@ export class TenderizeProgram {
 
     await this.delegateReserve({
       validators: instructions,
+    });
+  }
+
+  async mergeStakes(params: MergeStakesParams): Promise<void> {
+    if (params.stakePairs.length == 0) {
+      return;
+    }
+    const transaction = new Transaction();
+    transaction.add(await this.mergeStakesInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip',
+      }
+    );
+  }
+
+  async mergeStakesInstruction(params: MergeStakesParams): Promise<TransactionInstruction> {
+    const data = Buffer.alloc(1 + 4 + (32 + 4 + 4) * params.stakePairs.length);
+    let p = data.writeUInt8(13, 0);
+    p = data.writeUInt32LE(params.stakePairs.length, p);
+
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      {
+        pubkey: this.validatorStakeListAccount.publicKey,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: await this.getDepositAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      {
+        pubkey: SYSVAR_STAKE_HISTORY_PUBKEY,
+        isSigner: false,
+        isWritable: false,
+      },
+    ];
+
+    console.log(`Delegate from reserve into`);
+    for (const stakePair of params.stakePairs) {
+      p += stakePair.validator.toBuffer().copy(data, p);
+      p = data.writeUInt32LE(stakePair.mainIndex, p);
+      p = data.writeUInt32LE(stakePair.additionalIndex, p);
+
+      const mainStake = await this.getStakeForValidator(
+        stakePair.validator,
+        stakePair.mainIndex
+      );
+      const additionalStake = await this.getStakeForValidator(
+        stakePair.validator,
+        stakePair.additionalIndex
+      );
+      console.log(
+        `Merge validator ${stakePair.validator.toBase58()} stake #${stakePair.mainIndex} ${mainStake.toBase58()} with #${stakePair.additionalIndex} ${additionalStake.toBase58()}`
+      );
+    }
+
+    return new TransactionInstruction({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async mergeAllStakes(): Promise<void> {
+    const validators = await this.readValidators();
+    if (validators.length == 0) {
+      throw Error("No validator added");
+    }
+
+    const stakePairs: StakePair[] = [];
+    for (let validator of validators) {
+      const mergeIndices: number[] = [];
+      for (let i = 0; i < validator.stakeCount; ++i) {
+        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, i);
+        try {
+          const stakeData = await this.connection.getStakeActivation(
+            stakeAddress,
+            'singleGossip'
+          );
+          if (stakeData.state == 'active') {
+            mergeIndices.push(i)
+          }
+        } catch (e) { }
+      }
+      for (let i = 1; i < mergeIndices.length; ++i) {
+        stakePairs.push({
+          validator: validator.votePubkey,
+          mainIndex: mergeIndices[0],
+          additionalIndex: mergeIndices[i],
+        })
+      }
+    }
+
+    await this.mergeStakes({
+      stakePairs
     });
   }
 

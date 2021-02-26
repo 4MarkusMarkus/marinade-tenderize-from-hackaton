@@ -5,7 +5,10 @@ use crate::instruction::Fee;
 use crate::processor::Processor;
 use core::convert::TryInto;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
+    account_info::{next_account_info, AccountInfo},
+    entrypoint::ProgramResult,
+    msg,
+    program_error::ProgramError,
     pubkey::Pubkey,
 };
 use std::convert::TryFrom;
@@ -208,12 +211,32 @@ impl StakePool {
 
         Ok(())
     }
+
+    pub(crate) fn read_validator_stake_list<'b, 'a: 'b, I: Iterator<Item = &'b AccountInfo<'a>>>(
+        &self,
+        account_info_iter: &mut I,
+    ) -> Result<(ValidatorStakeList, &'b AccountInfo<'a>), ProgramError> {
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != self.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+        Ok((validator_stake_list, validator_stake_list_info))
+    }
 }
 
 /// Max validator count
-pub const MAX_VALIDATORS: usize = 1000;
+pub const MAX_VALIDATORS: usize = 100;
 /// Minimum stake account balance
-pub const MIN_STAKE_ACCOUNT_BALANCE: u64 = 1000000000; // 1 SOL
+pub const MIN_STAKE_ACCOUNT_BALANCE: u64 = 100000000; // 0.1 SOL
 
 /// Storage list for all validator stake accounts in the pool.
 #[repr(C)]

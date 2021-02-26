@@ -88,6 +88,9 @@ pub enum StakePoolError {
     /// Wrong credit state
     #[error("WrongCreditState")]
     WrongCreditState,
+    /// Stake index is too big
+    #[error("InvalidStakeIndex")]
+    InvalidStakeIndex,
 }
 impl From<StakePoolError> for ProgramError {
     fn from(e: StakePoolError) -> Self {

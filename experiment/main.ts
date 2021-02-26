@@ -65,6 +65,13 @@ async function main() {
 
     await tester.tenderize!.delegateReserveBatch(10000000000);
   }
+
+  if (true) {
+    console.log('\n ...Merge stakes...');
+
+    await tester.tenderize!.mergeAllStakes();
+  }
+
   if (true) {
     console.log('\n ...Updating pool...');
 
