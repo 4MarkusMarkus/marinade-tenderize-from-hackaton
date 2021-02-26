@@ -489,6 +489,8 @@ impl Processor {
     pub const AUTHORITY_WITHDRAW: &'static [u8] = b"withdraw";
     /// Suffix for reserve account seed
     pub const AUTHORITY_RESERVE: &'static [u8] = b"reserve";
+    /// Suffix for temp account
+    pub const TEMP_ACCOUNT: &'static [u8] = b"temp";
     /// Calculates the authority id by generating a program address.
     pub fn authority_id(
         program_id: &Pubkey,
@@ -1512,6 +1514,16 @@ impl Processor {
         // Pool token program id
         let token_program_info = next_account_info(account_info_iter)?;
 
+        let (temp_account_info, native_mint_info) =
+            if *source_user_info.owner != system_program::id() {
+                (
+                    Some(next_account_info(account_info_iter)?),
+                    Some(next_account_info(account_info_iter)?),
+                )
+            } else {
+                (None, None)
+            };
+
         // Check program ids
         let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
         if !stake_pool.is_initialized() {
@@ -1520,7 +1532,8 @@ impl Processor {
 
         stake_pool.check_authority_withdraw(withdraw_info.key, program_id, stake_pool_info.key)?;
 
-        let (expected_reserve, _) = Self::get_reserve_adderess(program_id, stake_pool_info.key);
+        let (expected_reserve, reserve_bump) =
+            Self::get_reserve_adderess(program_id, stake_pool_info.key);
         if *reserve_account_info.key != expected_reserve {
             msg!(
                 "Expected reserve to be {} but got {}",
@@ -1559,15 +1572,127 @@ impl Processor {
             .checked_sub(fee_amount)
             .ok_or(StakePoolError::CalculationFailure)?;
 
+        let withdraw_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_WITHDRAW,
+            &[stake_pool.withdraw_bump_seed],
+        ];
+
         // Transfer user's SOLs to reserve
-        invoke(
-            &system_instruction::transfer(source_user_info.key, reserve_account_info.key, amount),
-            &[
-                source_user_info.clone(),
-                reserve_account_info.clone(),
-                system_program_info.clone(),
-            ],
-        )?;
+        if let (Some(temp_account_info), Some(native_mint_info)) =
+            (temp_account_info, native_mint_info)
+        {
+            let (expected_temp_address, temp_bump) = Pubkey::find_program_address(
+                &[&stake_pool_info.key.to_bytes()[..32], Self::TEMP_ACCOUNT],
+                program_id,
+            );
+
+            if *temp_account_info.key != expected_temp_address {
+                msg!(
+                    "Expected temp account {} but got {}",
+                    &expected_temp_address,
+                    temp_account_info.key
+                );
+                return Err(ProgramError::InvalidArgument);
+            }
+
+            if *native_mint_info.key != spl_token::native_mint::id() {
+                msg!("Expected native mint");
+                return Err(ProgramError::InvalidArgument);
+            }
+
+            let temp_seeds = &[
+                &stake_pool_info.key.to_bytes()[..32],
+                Self::TEMP_ACCOUNT,
+                &[temp_bump],
+            ];
+
+            let reserve_signer_seeds: &[&[u8]] = &[
+                &stake_pool_info.key.to_bytes()[..32],
+                Self::AUTHORITY_RESERVE,
+                &[reserve_bump],
+            ];
+
+            invoke_signed(
+                &system_instruction::create_account(
+                    reserve_account_info.key,
+                    temp_account_info.key,
+                    rent.minimum_balance(spl_token::state::Account::LEN),
+                    spl_token::state::Account::LEN as u64,
+                    &spl_token::id(),
+                ),
+                &[
+                    reserve_account_info.clone(),
+                    temp_account_info.clone(),
+                    system_program_info.clone(),
+                ],
+                &[temp_seeds, reserve_signer_seeds],
+            )?;
+
+            invoke(
+                &spl_token::instruction::initialize_account(
+                    token_program_info.key,
+                    temp_account_info.key,
+                    &spl_token::native_mint::id(),
+                    withdraw_info.key,
+                )?,
+                &[
+                    token_program_info.clone(),
+                    temp_account_info.clone(),
+                    native_mint_info.clone(),
+                    withdraw_info.clone(),
+                    rent_info.clone(),
+                ],
+            )?;
+
+            invoke_signed(
+                &spl_token::instruction::transfer(
+                    token_program_info.key,
+                    source_user_info.key,
+                    temp_account_info.key,
+                    withdraw_info.key,
+                    &[],
+                    amount,
+                )?,
+                &[
+                    token_program_info.clone(),
+                    source_user_info.clone(),
+                    temp_account_info.clone(),
+                    withdraw_info.clone(),
+                ],
+                &[withdraw_signer_seeds],
+            )?;
+
+            invoke_signed(
+                &spl_token::instruction::close_account(
+                    token_program_info.key,
+                    temp_account_info.key,
+                    reserve_account_info.key,
+                    withdraw_info.key,
+                    &[],
+                )?,
+                &[
+                    token_program_info.clone(),
+                    temp_account_info.clone(),
+                    reserve_account_info.clone(),
+                    withdraw_info.clone(),
+                ],
+                &[withdraw_signer_seeds],
+            )?;
+        } else {
+            invoke(
+                &system_instruction::transfer(
+                    source_user_info.key,
+                    reserve_account_info.key,
+                    amount,
+                ),
+                &[
+                    source_user_info.clone(),
+                    reserve_account_info.clone(),
+                    system_program_info.clone(),
+                ],
+            )?;
+        }
 
         Self::token_mint_to(
             stake_pool_info.key,
