@@ -1464,6 +1464,7 @@ impl Processor {
                         additional_stake_account_info.clone(),
                         clock_info.clone(),
                         stake_history_info.clone(),
+                        deposit_info.clone(),
                     ],
                     &[deposit_signer_seeds],
                 )?;

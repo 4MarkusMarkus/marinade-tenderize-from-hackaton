@@ -828,6 +828,18 @@ export class TenderizeProgram {
       console.log(
         `Merge validator ${stakePair.validator.toBase58()} stake #${stakePair.mainIndex} ${mainStake.toBase58()} with #${stakePair.additionalIndex} ${additionalStake.toBase58()}`
       );
+
+      keys.push({
+        pubkey: mainStake,
+        isSigner: false,
+        isWritable: true,
+      });
+
+      keys.push({
+        pubkey: additionalStake,
+        isSigner: false,
+        isWritable: true,
+      });
     }
 
     return new TransactionInstruction({
@@ -858,7 +870,7 @@ export class TenderizeProgram {
           }
         } catch (e) { }
       }
-      for (let i = 1; i < mergeIndices.length; ++i) {
+      for (let i = mergeIndices.length - 1; i > 0; --i) {
         stakePairs.push({
           validator: validator.votePubkey,
           mainIndex: mergeIndices[0],
