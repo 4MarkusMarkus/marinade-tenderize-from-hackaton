@@ -659,6 +659,8 @@ impl Processor {
         Ok(())
     }
 
+    const MIN_RESERVE_BALANCE: u64 = 1000000;
+
     /// Processes [Deposit](enum.Instruction.html).
     pub fn process_deposit(
         program_id: &Pubkey,
@@ -739,7 +741,8 @@ impl Processor {
             return Err(StakePoolError::StakeListAndPoolOutOfDate.into());
         }*/
 
-        if !rent.is_exempt(**reserve_account_info.lamports.borrow() + amount, 0) {
+        let target_balance = **reserve_account_info.lamports.borrow() + amount;
+        if !rent.is_exempt(target_balance, 0) {
             return Err(StakePoolError::FirstDepositIsTooSmall.into());
         }
 
@@ -863,6 +866,10 @@ impl Processor {
                 &[withdraw_signer_seeds],
             )?;
         } else {
+            // Initial deposit must be enough
+            if target_balance < Self::MIN_RESERVE_BALANCE {
+                return Err(StakePoolError::FirstDepositIsTooSmall.into());
+            }
             invoke(
                 &system_instruction::transfer(
                     source_user_info.key,
@@ -974,7 +981,10 @@ impl Processor {
             .ok_or(StakePoolError::CalculationFailure)?;
 
         let reserve_balance = **reserve_account_info.lamports.borrow();
-        if stake_amount > reserve_balance || !rent.is_exempt(reserve_balance - stake_amount, 0) {
+        if stake_amount > reserve_balance
+            || reserve_balance - stake_amount < Self::MIN_RESERVE_BALANCE
+            || !rent.is_exempt(reserve_balance - stake_amount, 0)
+        {
             msg!(
                 "Requested to withdraw {} but reserve contains only {}",
                 stake_amount,
