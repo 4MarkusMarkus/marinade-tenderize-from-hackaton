@@ -124,7 +124,7 @@ impl StakePool {
     }
 
     /// Check owner validity and signature
-    pub fn check_owner(&self, owner_info: &AccountInfo) -> Result<(), ProgramError> {
+    pub fn check_owner(&self, owner_info: &AccountInfo) -> ProgramResult {
         if *owner_info.key != self.owner {
             return Err(StakePoolError::WrongOwner.into());
         }
@@ -160,26 +160,6 @@ impl StakePool {
         *value = *self;
 
         Ok(())
-    }
-
-    pub(crate) fn read_validator_stake_list<'b, 'a: 'b, I: Iterator<Item = &'b AccountInfo<'a>>>(
-        &self,
-        account_info_iter: &mut I,
-    ) -> Result<(ValidatorStakeList, &'b AccountInfo<'a>), ProgramError> {
-        let validator_stake_list_info = next_account_info(account_info_iter)?;
-
-        // Check validator stake account list storage
-        if *validator_stake_list_info.key != self.validator_stake_list {
-            return Err(StakePoolError::InvalidValidatorStakeList.into());
-        }
-
-        // Read validator stake list account and check if it is valid
-        let validator_stake_list =
-            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
-        if !validator_stake_list.is_initialized() {
-            return Err(StakePoolError::InvalidState.into());
-        }
-        Ok((validator_stake_list, validator_stake_list_info))
     }
 }
 

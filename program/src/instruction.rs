@@ -77,18 +77,12 @@ pub enum StakePoolInstruction {
 
     ///   3) Removes validator stake account from the pool
     ///
-    ///   0. `[w]` Stake pool
+    ///   0. `[]` Stake pool
     ///   1. `[s]` Owner
-    ///   2. `[]` Stake pool withdraw authority
-    ///   3. `[]` New withdraw/staker authority to set in the stake account
-    ///   4. `[w]` Validator stake list storage account
-    ///   5. `[w]` Stake account to remove from the pool
-    ///   6. `[w]` User account with pool tokens to burn from
-    ///   7. `[w]` Pool token mint account
-    ///   8. '[]' Sysvar clock account (required)
-    ///   9. `[]` Pool token program id
-    ///  10. `[]` Stake program id,
-    RemoveValidatorStakeAccount,
+    ///   2. `[w]` Validator stake list storage account
+    ///   3. `[]` Validator this stake account will vote for
+    ///   4. `[]` Clock sysvar (required)
+    RemoveValidator,
 
     ///   4) Updates balances of validator stake accounts in the pool
     ///   
@@ -225,7 +219,7 @@ impl StakePoolInstruction {
                 Self::Initialize(*val)
             }
             2 => Self::AddValidator,
-            3 => Self::RemoveValidatorStakeAccount,
+            3 => Self::RemoveValidator,
             4 => Self::UpdateListBalance,
             5 => Self::UpdatePoolBalance,
             6 => {
