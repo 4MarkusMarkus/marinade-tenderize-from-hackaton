@@ -94,6 +94,12 @@ pub enum StakePoolError {
     /// Stake index is too big
     #[error("InvalidStakeIndex")]
     InvalidStakeIndex,
+    /// Credit list overflow
+    #[error("CreditListOverfow")]
+    CreditListOverfow,
+    /// UnknownCreditor
+    #[error("UnknownCreditor")]
+    UnknownCreditor,
 }
 impl From<StakePoolError> for ProgramError {
     fn from(e: StakePoolError) -> Self {

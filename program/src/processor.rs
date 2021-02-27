@@ -348,6 +348,7 @@ impl Processor {
         )?;
 
         validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+        credit_list.serialize(&mut credit_list_info.data.borrow_mut())?;
 
         msg!("Clock data: {:?}", clock_info.data.borrow());
         msg!("Epoch: {}", clock.epoch);
@@ -782,6 +783,11 @@ impl Processor {
         amount: u64,
         accounts: &[AccountInfo],
     ) -> ProgramResult {
+        if amount == 0 {
+            msg!("Amount must not be zero");
+            return Err(ProgramError::InvalidArgument);
+        }
+
         let account_info_iter = &mut accounts.iter();
         // Stake pool
         let stake_pool_info = next_account_info(account_info_iter)?;
@@ -1033,6 +1039,11 @@ impl Processor {
         pool_amount: u64,
         accounts: &[AccountInfo],
     ) -> ProgramResult {
+        if pool_amount == 0 {
+            msg!("Amount must not be zero");
+            return Err(ProgramError::InvalidArgument);
+        }
+
         let account_info_iter = &mut accounts.iter();
         // Stake pool
         let stake_pool_info = next_account_info(account_info_iter)?;
@@ -1142,6 +1153,221 @@ impl Processor {
         stake_pool.pool_total -= pool_amount;
         stake_pool.stake_total -= stake_amount;
         stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    /// Processes [Credit](enum.Instruction.html).
+    pub fn process_credit(
+        program_id: &Pubkey,
+        amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        if amount == 0 {
+            msg!("Amount must not be zero");
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        let account_info_iter = &mut accounts.iter();
+        // Stake pool
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let credit_list_info = next_account_info(account_info_iter)?;
+        let credit_reserve_info = next_account_info(account_info_iter)?;
+        // Stake pool deposit authority
+        let withdraw_info = next_account_info(account_info_iter)?;
+        // User account with pool tokens to burn from
+        let burn_from_info = next_account_info(account_info_iter)?;
+        // Target user account with SOLs
+        let target_account_info = next_account_info(account_info_iter)?;
+        // Pool token program id
+        let token_program_info = next_account_info(account_info_iter)?;
+
+        if stake_pool_info.owner != program_id {
+            msg!(
+                "Wrong owner {} for the stake pool {}. Expected {}",
+                stake_pool_info.owner,
+                stake_pool_info.key,
+                program_id
+            );
+            return Err(StakePoolError::WrongOwner.into());
+        }
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        if stake_pool.token_program_id != *token_program_info.key {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+
+        if *credit_list_info.key != stake_pool.credit_list {
+            msg!(
+                "Expected credit list to be {} but got {}",
+                &stake_pool.credit_list,
+                credit_list_info.key
+            );
+            return Err(ProgramError::InvalidArgument.into());
+        }
+        let mut credit_list = CreditList::deserialize(&credit_list_info.data.borrow())?;
+
+        if *credit_reserve_info.key != stake_pool.credit_reserve {
+            msg!(
+                "Expected credit reserve to be {} but got {}",
+                &stake_pool.credit_reserve,
+                credit_reserve_info.key
+            );
+            return Err(ProgramError::InvalidArgument.into());
+        }
+
+        if let Some(credit_record) = credit_list
+            .credits
+            .iter_mut()
+            .find(|record| record.user == *target_account_info.key)
+        {
+            credit_record.token_amount += amount;
+        } else {
+            if credit_list.credits.len() >= MAX_CREDIT_RECORDS {
+                return Err(StakePoolError::CreditListOverfow.into());
+            }
+            credit_list.credits.push(CreditRecord {
+                user: target_account_info.key.clone(),
+                token_amount: amount,
+            })
+        }
+
+        let withdraw_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_WITHDRAW,
+            &[stake_pool.withdraw_bump_seed],
+        ];
+
+        invoke_signed(
+            &spl_token::instruction::transfer(
+                token_program_info.key,
+                burn_from_info.key,
+                credit_reserve_info.key,
+                withdraw_info.key,
+                &[],
+                amount,
+            )?,
+            &[
+                burn_from_info.clone(),
+                credit_reserve_info.clone(),
+                withdraw_info.clone(),
+            ],
+            &[withdraw_signer_seeds],
+        )?;
+
+        credit_list.serialize(&mut credit_list_info.data.borrow_mut())?;
+
+        Ok(())
+    }
+
+    /// Processes [Uncredit](enum.Instruction.html).
+    pub fn process_uncredit(
+        program_id: &Pubkey,
+        amount: u64,
+        accounts: &[AccountInfo],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        // Stake pool
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let credit_list_info = next_account_info(account_info_iter)?;
+        let credit_reserve_info = next_account_info(account_info_iter)?;
+        // Stake pool deposit authority
+        let withdraw_info = next_account_info(account_info_iter)?;
+        // User account with pool tokens to burn from
+        let burn_from_info = next_account_info(account_info_iter)?;
+        // Target user account with SOLs
+        let target_account_info = next_account_info(account_info_iter)?;
+        // Pool token program id
+        let token_program_info = next_account_info(account_info_iter)?;
+
+        if stake_pool_info.owner != program_id {
+            msg!(
+                "Wrong owner {} for the stake pool {}. Expected {}",
+                stake_pool_info.owner,
+                stake_pool_info.key,
+                program_id
+            );
+            return Err(StakePoolError::WrongOwner.into());
+        }
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        if stake_pool.token_program_id != *token_program_info.key {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+
+        if *credit_list_info.key != stake_pool.credit_list {
+            msg!(
+                "Expected credit list to be {} but got {}",
+                &stake_pool.credit_list,
+                credit_list_info.key
+            );
+            return Err(ProgramError::InvalidArgument.into());
+        }
+        let mut credit_list = CreditList::deserialize(&credit_list_info.data.borrow())?;
+
+        if *credit_reserve_info.key != stake_pool.credit_reserve {
+            msg!(
+                "Expected credit reserve to be {} but got {}",
+                &stake_pool.credit_reserve,
+                credit_reserve_info.key
+            );
+            return Err(ProgramError::InvalidArgument.into());
+        }
+
+        if let Some(credit_record) = credit_list
+            .credits
+            .iter_mut()
+            .find(|record| record.user == *target_account_info.key)
+        {
+            if amount > credit_record.token_amount {
+                return Err(ProgramError::InsufficientFunds);
+            }
+            if amount == credit_record.token_amount {
+                credit_list
+                    .credits
+                    .retain(|record| record.user != *target_account_info.key);
+            } else {
+                credit_record.token_amount -= amount;
+            }
+        } else {
+            msg!(
+                "Unknown creditor {} from {} creditors",
+                target_account_info.key,
+                credit_list.credits.len()
+            );
+            return Err(StakePoolError::UnknownCreditor.into());
+        }
+
+        let withdraw_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_WITHDRAW,
+            &[stake_pool.withdraw_bump_seed],
+        ];
+
+        invoke_signed(
+            &spl_token::instruction::transfer(
+                token_program_info.key,
+                credit_reserve_info.key,
+                burn_from_info.key,
+                withdraw_info.key,
+                &[],
+                amount,
+            )?,
+            &[
+                burn_from_info.clone(),
+                credit_reserve_info.clone(),
+                withdraw_info.clone(),
+            ],
+            &[withdraw_signer_seeds],
+        )?;
+
+        credit_list.serialize(&mut credit_list_info.data.borrow_mut())?;
 
         Ok(())
     }
@@ -1890,12 +2116,12 @@ impl Processor {
                 Self::process_set_owner(program_id, accounts)
             }
             StakePoolInstruction::Credit(amount) => {
-                panic!("Instruction: Credit {}", amount);
-                // Self::process_test_deposit(program_id, amount, accounts)
+                msg!("Instruction: Credit {}", amount);
+                Self::process_credit(program_id, amount, accounts)
             }
             StakePoolInstruction::Uncredit(amount) => {
-                panic!("Instruction: Uncredit {}", amount);
-                // Self::process_test_withdraw(program_id, amount, accounts)
+                msg!("Instruction: Uncredit {}", amount);
+                Self::process_uncredit(program_id, amount, accounts)
             }
             StakePoolInstruction::DelegateReserve(instructions) => {
                 msg!(
@@ -1959,6 +2185,8 @@ impl PrintProgramError for StakePoolError {
             StakePoolError::WrongCreditOwner => msg!("Error: Wrong credit owner"),
             StakePoolError::WrongCreditState => msg!("Error: Wrong credit satte"),
             StakePoolError::InvalidStakeIndex => msg!("Error: Invalid stake index"),
+            StakePoolError::CreditListOverfow => msg!("Error: Credit list overflow"),
+            StakePoolError::UnknownCreditor => msg!("Error: Invalid unknown creditor"),
         }
     }
 }

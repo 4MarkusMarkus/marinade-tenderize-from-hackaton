@@ -29,7 +29,7 @@ pub struct InitArgs {
 }
 /// Delegate Reserve Instruction
 #[repr(C, packed)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DelegateReserveInstruction {
     /// amount to delegate
     pub amount: u64,
@@ -39,7 +39,7 @@ pub struct DelegateReserveInstruction {
 
 /// Merge stakes Instruction
 #[repr(C, packed)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MergeStakesInstruction {
     /// Validator vote pubkey
     pub validator_address: Pubkey,
@@ -51,7 +51,7 @@ pub struct MergeStakesInstruction {
 
 /// Unstake
 #[repr(C, packed)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UnstakeInstruction {
     /// Validator vote pubkey
     pub validator_address: Pubkey,
@@ -72,13 +72,13 @@ pub enum StakePoolInstruction {
     ///   0. `[w]` New StakePool to create.
     ///   1. `[s]` Owner
     ///   2. `[w]` Uninitialized validator stake list storage account
-    ///   2. `[w]` Uninitialized credit list storage account
-    ///   3. `[]` pool token Mint. Must be non zero, owned by withdraw authority.
-    ///   4. `[]` Pool Account to deposit the generated fee for owner.
-    ///   5. `[w]` Credit reserve token account
-    ///   5. `[]` Clock sysvar
-    ///   6. `[]` Rent sysvar
-    ///   7. `[]` Token program id
+    ///   3. `[w]` Uninitialized credit list storage account
+    ///   4. `[]` pool token Mint. Must be non zero, owned by withdraw authority.
+    ///   5. `[]` Pool Account to deposit the generated fee for owner.
+    ///   6. `[w]` Credit reserve token account
+    ///   7. `[]` Clock sysvar
+    ///   8. `[]` Rent sysvar
+    ///   9. `[]` Token program id
     Initialize(InitArgs),
 
     ///   2) Adds validator stake account to the pool
@@ -172,30 +172,28 @@ pub enum StakePoolInstruction {
     ///   3. '[]` New owner fee account
     SetOwner,
 
-    ///   10) Test deposit without reserve
+    ///   10) Credit
     ///
-    ///   0. `[w]` StakePool
-    ///   1. `[w]` Validator stake list storage account
-    ///   2. `[]` Stake pool deposit authority
-    ///   3. `[ws]` User's wallet
-    ///   4. `[]` System program
-    ///   5. `[]` Stake program
-    ///   6. `[]` Clock sysvar
-    ///   7. `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   8. `[]` Address of config account that carries stake config
-    ///   9. ..9+2N ` [w][] N stake + validator vote accounts to update balances
+    ///   0. `[w]` Stake pool
+    ///   1. `[w]` Credit list account
+    ///   2. `[w]` Credit resrve
+    ///   3. `[]` Stake pool withdraw authority
+    ///   4. `[w]` User account with pool tokens to burn from
+    ///   5. `[]` Target to SOL transfer
+    ///   6. `[]` Pool token program id
+    ///   userdata: amount to withdraw
     Credit(u64),
 
-    ///   11) Test deposit without reserve
+    ///   11) Uncredit
     ///
-    ///   0. `[w]` StakePool
-    ///   1. `[w]` Validator stake list storage account
-    ///   2. `[]` Stake pool withdraw authority
-    ///   3. `[w]` User's wallet
-    ///   4. `[]` Stake program
-    ///   5. `[]` Clock sysvar
-    ///   6. `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   7..7+N `[w]` N stake accounts
+    ///   0. `[w]` Stake pool
+    ///   1. `[w]` Credit list account
+    ///   2. `[w]` Credit resrve
+    ///   3. `[]` Stake pool withdraw authority
+    ///   4. `[w]` User account with pool tokens for returning
+    ///   5. `[s]` Target to SOL transfer for canceling
+    ///   6. `[]` Pool token program id
+    ///   userdata: amount to withdraw
     Uncredit(u64),
 
     ///   12) Delegate reserve to stake account
