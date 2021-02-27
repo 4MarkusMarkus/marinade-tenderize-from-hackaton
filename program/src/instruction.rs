@@ -48,6 +48,21 @@ pub struct MergeStakesInstruction {
     /// Merge source
     pub additional_index: u32,
 }
+
+/// Unstake
+#[repr(C, packed)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct UnstakeInstruction {
+    /// Validator vote pubkey
+    pub validator_address: Pubkey,
+    /// Source index
+    pub source_index: u32,
+    /// Split index (use source index for full unstake)
+    pub split_index: u32,
+    /// Amount
+    pub amount: u64,
+}
+
 /// Instructions supported by the StakePool program.
 #[repr(C)]
 #[derive(Clone, Debug, PartialEq)]
@@ -186,20 +201,21 @@ pub enum StakePoolInstruction {
     ///   12) Delegate reserve to stake account
     ///
     ///   0.  `[w]` StakePool
-    ///   1.  `[w]` Validator stake list storage account
-    ///   2.  `[]` Stake pool withdraw authority
-    ///   3.  `[]` Stake pool deposit authority
-    ///   4.  `[w]` SOL reserve account (PDA)
-    ///   5.  `[]` System program
-    ///   6.  `[]` Stake program
-    ///   7.  `[]` Clock sysvar
-    ///   8.  `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   9.  `[]` Address of config account that carries stake config
-    ///   10. `[]` Rent sysvar
-    ///   11. ..11+2N ` [] validator [w] stake
+    ///   1.  `[s]` Owner signature // TODO: maybe non owner can do it if properly check
+    ///   2.  `[w]` Validator stake list storage account
+    ///   3.  `[]` Stake pool withdraw authority
+    ///   4.  `[]` Stake pool deposit authority
+    ///   5.  `[w]` SOL reserve account (PDA)
+    ///   6.  `[]` System program
+    ///   7.  `[]` Stake program
+    ///   8.  `[]` Clock sysvar
+    ///   9.  `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   10. `[]` Address of config account that carries stake config
+    ///   11. `[]` Rent sysvar
+    ///   12. ..12+2N `[]` validator `[w]` stake
     DelegateReserve(Vec<DelegateReserveInstruction>),
 
-    ///   13) Delegate reserve to stake account
+    ///   13) Merge stakes
     ///
     ///   0.  `[]` StakePool
     ///   1.  `[w]` Validator stake list storage account
@@ -207,8 +223,21 @@ pub enum StakePoolInstruction {
     ///   4.  `[]` Stake program
     ///   5.  `[]` Clock sysvar
     ///   6.  `[]` Stake history sysvar that carries stake warmup/cooldown history
-    ///   7. ..7+2N ` [] validator [w] stake A [w] stake B
+    ///   7. ..7+2N `[w]` stake A `[w]` stake B
     MergeStakes(Vec<MergeStakesInstruction>),
+
+    ///  14. Unstake
+    ///
+    ///   0.  `[]` StakePool
+    ///   1.  `[s]` Owner signature
+    ///   1.  `[w]` Validator stake list storage account
+    ///   2.  `[]` Stake pool deposit authority
+    ///   3.  `[]` System program
+    ///   4.  `[]` Stake program
+    ///   5.  `[]` Clock sysvar
+    ///   6.  `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   7..7+? `[w]` stake source `[w]` stake split target (optional)
+    Unstake(Vec<UnstakeInstruction>),
 }
 
 impl StakePoolInstruction {
@@ -285,6 +314,25 @@ impl StakePoolInstruction {
                     )
                 };
                 Self::MergeStakes(instructions.to_vec())
+            }
+            14 => {
+                let count: &u32 = unpack(input)?;
+                if input.len() < 1 + 4 + *count as usize * mem::size_of::<UnstakeInstruction>() {
+                    msg!(
+                        "Expeced size to be {} but got {} sizeof = {}",
+                        1 + 4 + *count as usize * mem::size_of::<UnstakeInstruction>(),
+                        input.len(),
+                        mem::size_of::<UnstakeInstruction>()
+                    );
+                    return Err(ProgramError::InvalidArgument);
+                }
+                let instructions = unsafe {
+                    std::slice::from_raw_parts(
+                        &input[1 + 4] as *const u8 as *const UnstakeInstruction,
+                        *count as usize,
+                    )
+                };
+                Self::Unstake(instructions.to_vec())
             }
             _ => return Err(ProgramError::InvalidAccountData),
         })

@@ -4,10 +4,11 @@ use crate::{
     error::StakePoolError,
     instruction::{
         DelegateReserveInstruction, InitArgs, MergeStakesInstruction, StakePoolInstruction,
+        UnstakeInstruction,
     },
-    stake::{self, StakeState},
+    stake::{self, delegate_stake, split_only, StakeState},
     state::{
-        CreditList, CreditRecord, StakePool, ValidatorStakeInfo, ValidatorStakeList,
+        self, CreditList, CreditRecord, StakePool, ValidatorStakeInfo, ValidatorStakeList,
         MAX_CREDIT_RECORDS, MIN_STAKE_ACCOUNT_BALANCE,
     },
     PROGRAM_VERSION,
@@ -1338,6 +1339,7 @@ impl Processor {
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
         let stake_pool_info = next_account_info(account_info_iter)?;
+        let owner_info = next_account_info(account_info_iter)?;
         let validator_stake_list_info = next_account_info(account_info_iter)?;
         let withdraw_info = next_account_info(account_info_iter)?;
         let deposit_info = next_account_info(account_info_iter)?;
@@ -1370,6 +1372,8 @@ impl Processor {
         if !stake_pool.is_initialized() {
             return Err(StakePoolError::InvalidState.into());
         }
+
+        stake_pool.check_owner(owner_info)?;
 
         // Check validator stake account list storage
         if *validator_stake_list_info.key != stake_pool.validator_stake_list {
@@ -1437,6 +1441,7 @@ impl Processor {
 
                 if *stake_account_info.owner == system_program::id() {
                     // non existent account
+                    msg!("Init stake {}", stake_account_info.key);
                     Self::init_stake(
                         validator,
                         validator_vote_info,
@@ -1458,6 +1463,7 @@ impl Processor {
                     )?;
                 } else {
                     // must be stake account
+                    msg!("Redelegate stake {}", stake_account_info.key);
                     Self::redelegate_stake(
                         validator,
                         validator_vote_info,
@@ -1566,6 +1572,66 @@ impl Processor {
                     return Err(StakePoolError::InvalidStakeIndex.into());
                 }
 
+                validator.check_validator_stake_address(
+                    program_id,
+                    stake_pool_info.key,
+                    instruction.main_index,
+                    main_stake_account_info.key,
+                )?;
+
+                validator.check_validator_stake_address(
+                    program_id,
+                    stake_pool_info.key,
+                    instruction.additional_index,
+                    additional_stake_account_info.key,
+                )?;
+
+                msg!(
+                    "Merge stake {} with {}",
+                    main_stake_account_info.key,
+                    additional_stake_account_info.key
+                );
+
+                let main_stake_state: stake::StakeState =
+                    deserialize(&main_stake_account_info.data.borrow()).or_else(|_| {
+                        msg!("Error reading stake {} state", main_stake_account_info.key);
+                        Err(ProgramError::InvalidAccountData)
+                    })?;
+
+                let additional_stake_state: stake::StakeState =
+                    deserialize(&additional_stake_account_info.data.borrow()).or_else(|_| {
+                        msg!(
+                            "Error reading stake {} state",
+                            additional_stake_account_info.key
+                        );
+                        Err(ProgramError::InvalidAccountData)
+                    })?;
+
+                match (main_stake_state, additional_stake_state) {
+                    (
+                        stake::StakeState::Stake(
+                            _,
+                            stake::Stake {
+                                delegation: _,
+                                credits_observed: main_credits_observed,
+                            },
+                        ),
+                        stake::StakeState::Stake(
+                            _,
+                            stake::Stake {
+                                delegation: _,
+                                credits_observed: additional_credits_observed,
+                            },
+                        ),
+                    ) => {
+                        if main_credits_observed != additional_credits_observed {
+                            msg!("Merge failed. Ignoring for now (please implelent better off-chain mergeable detector)");
+                            continue;
+                        }
+                    }
+                    (_, _) => (), // Stake merge will check the rest
+                }
+
                 invoke_signed(
                     &stake::merge(
                         main_stake_account_info.key,
@@ -1591,6 +1657,186 @@ impl Processor {
                 msg!(
                     "Unexpected validator account {}",
                     instruction.validator_address
+                );
+                return Err(StakePoolError::ValidatorNotFound.into());
+            }
+        }
+
+        if changed {
+            validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+        }
+
+        Ok(())
+    }
+
+    /// Process Unstake
+    pub fn process_unstake(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        instructions: &[UnstakeInstruction],
+    ) -> ProgramResult {
+        let account_info_iter = &mut accounts.iter();
+        let stake_pool_info = next_account_info(account_info_iter)?;
+        let owner_info = next_account_info(account_info_iter)?;
+        let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let deposit_info = next_account_info(account_info_iter)?;
+        let system_program_info = next_account_info(account_info_iter)?;
+        // Staking program id
+        let stake_program_info = next_account_info(account_info_iter)?;
+        // Clock sysvar account
+        let clock_info = next_account_info(account_info_iter)?;
+        // let clock = &Clock::from_account_info(clock_info)?;
+        let stake_history_info = next_account_info(account_info_iter)?;
+
+        if stake_pool_info.owner != program_id {
+            msg!(
+                "Wrong owner {} for the stake pool {}. Expected {}",
+                stake_pool_info.owner,
+                stake_pool_info.key,
+                program_id
+            );
+            return Err(StakePoolError::WrongOwner.into());
+        }
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        if !stake_pool.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        stake_pool.check_owner(owner_info)?;
+
+        // Check validator stake account list storage
+        if *validator_stake_list_info.key != stake_pool.validator_stake_list {
+            return Err(StakePoolError::InvalidValidatorStakeList.into());
+        }
+
+        // Read validator stake list account and check if it is valid
+        let mut validator_stake_list =
+            ValidatorStakeList::deserialize(&validator_stake_list_info.data.borrow())?;
+        if !validator_stake_list.is_initialized() {
+            return Err(StakePoolError::InvalidState.into());
+        }
+
+        stake_pool.check_authority_deposit(deposit_info.key, program_id, stake_pool_info.key)?;
+
+        let deposit_signer_seeds: &[&[_]] = &[
+            &stake_pool_info.key.to_bytes()[..32],
+            Self::AUTHORITY_DEPOSIT,
+            &[stake_pool.deposit_bump_seed],
+        ];
+
+        let mut changed = false;
+        for instruction in instructions {
+            if let Some(validator) = validator_stake_list
+                .validators
+                .iter_mut()
+                .find(|validator| instruction.validator_address == validator.validator_account)
+            {
+                if instruction.source_index >= validator.stake_count {
+                    return Err(StakePoolError::InvalidStakeIndex.into());
+                }
+
+                if instruction.split_index > validator.stake_count {
+                    return Err(StakePoolError::InvalidStakeIndex.into());
+                }
+
+                let source_stake_info = next_account_info(account_info_iter)?;
+                validator.check_validator_stake_address(
+                    program_id,
+                    stake_pool_info.key,
+                    instruction.source_index,
+                    source_stake_info.key,
+                )?;
+                if instruction.split_index == instruction.source_index {
+                    // Deactivate main stake
+                    msg!("Unstake {}", source_stake_info.key);
+
+                    invoke_signed(
+                        &stake::deactivate_stake(source_stake_info.key, deposit_info.key),
+                        &[
+                            stake_program_info.clone(),
+                            source_stake_info.clone(),
+                            deposit_info.clone(),
+                            clock_info.clone(),
+                            stake_history_info.clone(),
+                        ],
+                        &[deposit_signer_seeds],
+                    )?;
+                } else {
+                    // Split and deactivate
+
+                    if instruction.split_index == validator.stake_count {
+                        validator.stake_count += 1;
+                        changed = true;
+                    }
+
+                    let split_stake_info = next_account_info(account_info_iter)?;
+                    let split_stake_bump_seed = validator.check_validator_stake_address(
+                        program_id,
+                        stake_pool_info.key,
+                        instruction.split_index,
+                        split_stake_info.key,
+                    )?;
+                    msg!(
+                        "Split {} into {} and deactivate",
+                        source_stake_info.key,
+                        split_stake_info.key
+                    );
+
+                    let split_stake_signer_seeds = &[
+                        &instruction.validator_address.to_bytes()[..32],
+                        &stake_pool_info.key.to_bytes()[..32],
+                        &unsafe { std::mem::transmute::<u32, [u8; 4]>(instruction.split_index) },
+                        &[split_stake_bump_seed],
+                    ];
+
+                    invoke_signed(
+                        &system_instruction::create_account(
+                            deposit_info.key, // Sending 0, so any signer will suffice
+                            split_stake_info.key,
+                            0,
+                            std::mem::size_of::<StakeState>() as u64,
+                            &stake::id(),
+                        ),
+                        &[
+                            system_program_info.clone(),
+                            deposit_info.clone(),
+                            split_stake_info.clone(),
+                        ],
+                        &[deposit_signer_seeds, split_stake_signer_seeds],
+                    )?;
+
+                    invoke_signed(
+                        &stake::split_only(
+                            source_stake_info.key,
+                            deposit_info.key,
+                            instruction.amount,
+                            split_stake_info.key,
+                        ),
+                        &[
+                            stake_program_info.clone(),
+                            source_stake_info.clone(),
+                            deposit_info.clone(),
+                            split_stake_info.clone(),
+                        ],
+                        &[deposit_signer_seeds],
+                    )?;
+
+                    invoke_signed(
+                        &stake::deactivate_stake(split_stake_info.key, deposit_info.key),
+                        &[
+                            stake_program_info.clone(),
+                            split_stake_info.clone(),
+                            deposit_info.clone(),
+                            clock_info.clone(),
+                            stake_history_info.clone(),
+                        ],
+                        &[deposit_signer_seeds],
+                    )?;
+                }
+            } else {
+                msg!(
+                    "Unexpected validator account {}",
+                    &instruction.validator_address
                 );
                 return Err(StakePoolError::ValidatorNotFound.into());
             }
@@ -1664,6 +1910,13 @@ impl Processor {
                     instructions.len()
                 );
                 Self::process_merge_stakes(program_id, accounts, &instructions)
+            }
+            StakePoolInstruction::Unstake(instructions) => {
+                msg!(
+                    "Instruction: Unstake with {} instructions",
+                    instructions.len()
+                );
+                Self::process_unstake(program_id, accounts, &instructions)
             }
         }
     }

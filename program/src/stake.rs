@@ -518,3 +518,13 @@ pub fn withdraw(
 
     Instruction::new(id(), &StakeInstruction::Withdraw(lamports), account_metas)
 }
+
+/// FIXME copied from the stake program
+pub fn deactivate_stake(stake_pubkey: &Pubkey, authorized_pubkey: &Pubkey) -> Instruction {
+    let account_metas = vec![
+        AccountMeta::new(*stake_pubkey, false),
+        AccountMeta::new_readonly(sysvar::clock::id(), false),
+        AccountMeta::new_readonly(*authorized_pubkey, true),
+    ];
+    Instruction::new(id(), &StakeInstruction::Deactivate, account_metas)
+}

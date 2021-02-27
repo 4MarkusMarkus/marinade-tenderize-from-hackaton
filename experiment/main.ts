@@ -25,6 +25,11 @@ async function main() {
     console.log('\n ...Create stake pool...');
     await tester.createStakePool();
 
+    state = await tester.tenderize!.readState();
+  }
+
+  const reserve = await tester.connection.getAccountInfo(await tester.tenderize!.getReserveAddress());
+  if (reserve!.lamports < 100000000000) {
     console.log('\n ...Calling deposit function...');
 
     await tester.tenderize!.deposit({
@@ -59,11 +64,15 @@ async function main() {
       amount: 1000000000,
       userSolTarget: tester.payerAccount.publicKey,
     });
+
+    state = await tester.tenderize!.readState();
   }
   if (true) {
     console.log('\n ...Delegating reserve...');
 
     await tester.tenderize!.delegateReserveBatch(10000000000);
+
+    state = await tester.tenderize!.readState();
   }
 
   if (true) {
@@ -76,6 +85,14 @@ async function main() {
     console.log('\n ...Updating pool...');
 
     await tester.tenderize!.updatePool();
+    state = await tester.tenderize!.readState();
+  }
+
+  if (true) {
+    console.log('\n ...Unstake all...');
+
+    await tester.tenderize!.unstakeAll();
+    state = await tester.tenderize!.readState();
   }
 
   console.log('Success');

@@ -81,6 +81,17 @@ export interface MergeStakesParams {
   stakePairs: StakePair[];
 }
 
+export interface Unstake {
+  validator: PublicKey;
+  sourceIndex: number;
+  splitIndex?: number;
+  amount?: number;
+}
+
+export interface UnstakeParams {
+  unstakes: Unstake[];
+}
+
 export interface UpdateListBalanceParams {
   validators: PublicKey[];
 }
@@ -473,105 +484,6 @@ export class TenderizeProgram {
       data,
     });
   }
-  /*
-    async testDeposit(params: TestDepositParams): Promise<void> {
-      const transaction = new Transaction();
-      transaction.add(await this.testDepositInstruction(params));
-      await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [params.userWallet],
-        {
-          commitment: 'singleGossip',
-          preflightCommitment: 'singleGossip'
-        });
-    }
-  
-    async testDepositInstruction(params: TestDepositParams) {
-      const data = Buffer.alloc(1 + 8);
-      let p = data.writeUInt8(10, 0);
-      p = data.writeBigUInt64LE(BigInt(params.amount), p);
-  
-      const keys = [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: params.stakePoolDepositAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
-        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: new PublicKey("StakeConfig11111111111111111111111111111111"), isSigner: false, isWritable: false },];
-  
-      console.log(`Depositing ${params.amount} into`);
-      for (const validator of params.validators) {
-        const stake = await this.getStakeForValidator(validator);
-        console.log(`Validator ${validator.toBase58()} stake ${stake.toBase58()}`);
-        keys.push({
-          pubkey: stake,
-          isSigner: false,
-          isWritable: true
-        });
-  
-        keys.push({
-          pubkey: validator,
-          isSigner: false,
-          isWritable: false
-        })
-      }
-  
-      return new TransactionInstruction({
-        keys,
-        programId: this.programId,
-        data,
-      });
-    }
-  
-    async testWithdraw(params: TestWithdrawParams): Promise<void> {
-      const transaction = new Transaction();
-      transaction.add(await this.testWithdrawInstruction(params));
-      await sendAndConfirmTransaction(
-        this.connection,
-        transaction,
-        [params.userWallet],
-        {
-          commitment: 'singleGossip',
-          preflightCommitment: 'singleGossip'
-        });
-    }
-  
-    async testWithdrawInstruction(params: TestWithdrawParams) {
-      const data = Buffer.alloc(1 + 8);
-      let p = data.writeUInt8(11, 0);
-      p = data.writeBigUInt64LE(BigInt(params.amount), p);
-  
-      const keys = [
-        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-        { pubkey: this.validatorStakeListAccount.publicKey, isSigner: false, isWritable: true },
-        { pubkey: params.stakePoolWithdrawAuthority, isSigner: false, isWritable: false },
-        { pubkey: params.userWallet.publicKey, isSigner: true, isWritable: true },
-        { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
-        { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },];
-  
-      console.log(`Whithdraw ${params.amount} from`);
-      for (const validator of params.validators) {
-        const stake = await this.getStakeForValidator(validator);
-        console.log(`Validator ${validator.toBase58()} stake ${stake.toBase58()}`);
-        keys.push({
-          pubkey: stake,
-          isSigner: false,
-          isWritable: true
-        });
-      }
-  
-      return new TransactionInstruction({
-        keys,
-        programId: this.programId,
-        data,
-      });
-    }
-  */
 
   async delegateReserve(params: DepositReserveParams): Promise<void> {
     const transaction = new Transaction();
@@ -579,7 +491,7 @@ export class TenderizeProgram {
     await sendAndConfirmTransaction(
       this.connection,
       transaction,
-      [this.payerAccount],
+      [this.payerAccount, this.owner],
       {
         commitment: 'singleGossip',
         preflightCommitment: 'singleGossip',
@@ -594,6 +506,7 @@ export class TenderizeProgram {
 
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
       {
         pubkey: this.validatorStakeListAccount.publicKey,
         isSigner: false,
@@ -811,7 +724,7 @@ export class TenderizeProgram {
       },
     ];
 
-    console.log(`Delegate from reserve into`);
+    console.log(`Merging stakes`);
     for (const stakePair of params.stakePairs) {
       p += stakePair.validator.toBuffer().copy(data, p);
       p = data.writeUInt32LE(stakePair.mainIndex, p);
@@ -881,6 +794,123 @@ export class TenderizeProgram {
 
     await this.mergeStakes({
       stakePairs
+    });
+  }
+
+  async unstake(params: UnstakeParams): Promise<void> {
+    if (params.unstakes.length == 0) {
+      return;
+    }
+    const transaction = new Transaction();
+    transaction.add(await this.unstakeInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount, this.owner],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip',
+      }
+    );
+  }
+
+  async unstakeInstruction(params: UnstakeParams): Promise<TransactionInstruction> {
+    const data = Buffer.alloc(1 + 4 + (32 + 4 + 4 + 8) * params.unstakes.length);
+    let p = data.writeUInt8(14, 0);
+    p = data.writeUInt32LE(params.unstakes.length, p);
+
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
+      {
+        pubkey: this.validatorStakeListAccount.publicKey,
+        isSigner: false,
+        isWritable: true,
+      },
+      {
+        pubkey: await this.getDepositAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
+    ];
+
+    console.log(`Unstake`);
+    for (const unstake of params.unstakes) {
+      p += unstake.validator.toBuffer().copy(data, p);
+      p = data.writeUInt32LE(unstake.sourceIndex, p);
+      p = data.writeUInt32LE(unstake.splitIndex || unstake.sourceIndex, p);
+      p = data.writeBigUInt64LE(BigInt(unstake.amount || 0), p);
+
+      const sourceStake = await this.getStakeForValidator(
+        unstake.validator,
+        unstake.sourceIndex
+      );
+
+      keys.push({
+        pubkey: sourceStake,
+        isSigner: false,
+        isWritable: true,
+      });
+
+      if (unstake.splitIndex) {
+        const splitStake = await this.getStakeForValidator(
+          unstake.validator,
+          unstake.splitIndex
+        );
+        console.log(
+          `Split validator ${unstake.validator.toBase58()} stake #${unstake.sourceIndex} ${sourceStake.toBase58()} with #${unstake.splitIndex} ${splitStake.toBase58()}`
+        );
+
+        keys.push({
+          pubkey: splitStake,
+          isSigner: false,
+          isWritable: true,
+        });
+      } else {
+        console.log(
+          `Undelegate validator ${unstake.validator.toBase58()} stake #${unstake.sourceIndex} ${sourceStake.toBase58()}`
+        );
+      }
+    }
+
+    return new TransactionInstruction({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async unstakeAll(): Promise<void> {
+    const validators = await this.readValidators();
+    if (validators.length == 0) {
+      throw Error("No validator added");
+    }
+
+    const unstakes: Unstake[] = [];
+    for (let validator of validators) {
+      for (let i = 0; i < validator.stakeCount; ++i) {
+        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, i);
+        try {
+          const stakeData = await this.connection.getStakeActivation(
+            stakeAddress,
+            'singleGossip'
+          );
+          if ((stakeData.active > 0) && ((stakeData.state == 'active') || (stakeData.state == 'activating'))) {
+            unstakes.push({
+              validator: validator.votePubkey,
+              sourceIndex: i
+            })
+          }
+        } catch (e) { }
+      }
+    }
+
+    await this.unstake({
+      unstakes
     });
   }
 
