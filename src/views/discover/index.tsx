@@ -203,11 +203,13 @@ export const DiscoverView = () => {
               <Button
                 className='tenderButton tenderButtonShade'
                 style={{ marginTop: '10px' }}
-                onClick={deposit({
-                  userSource: account,
-                  amount: 100000000000,
-                  userToken: '',
-                })}
+                onClick={() =>
+                  deposit({
+                    userSource: account,
+                    amount: 100000000000,
+                    userToken: '',
+                  })
+                }
               >
                 Stake
               </Button>
