@@ -1,16 +1,25 @@
 import {
   PublicKey,
   SystemProgram,
-  SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import { TOKEN_PROGRAM_ID, TENDERIZE_PROGRAM_ID, STAKE_POOL_ID, WITHDRAW_AUTHORITY_PDA, RESERVE_ADDRESS_PDA, OWNER_FEE_ACCOUNT, TENDERIZED_SOL_MINT_ID, TEMP_ACCOUNT_PDA, WRAPPED_SOL_MINT } from '../../utils/ids';
+import {
+  TOKEN_PROGRAM_ID,
+  TENDERIZE_PROGRAM_ID,
+  STAKE_POOL_ID,
+  WITHDRAW_AUTHORITY_PDA,
+  RESERVE_ADDRESS_PDA,
+  OWNER_FEE_ACCOUNT,
+  TENDERIZED_SOL_MINT_ID,
+  TEMP_ACCOUNT_PDA,
+  WRAPPED_SOL_MINT,
+} from '../../utils/ids';
 import * as Layout from './../../utils/layout';
 import { LendingInstruction } from './lending';
-import { calculateUtilizationRatio, LendingReserve } from './reserve';
+// import { LendingReserve } from './reserve';
 
 /// Deposit liquidity into a reserve. The output is a collateral token representing ownership
 /// of the reserve liquidity pool.
@@ -28,7 +37,7 @@ import { calculateUtilizationRatio, LendingReserve } from './reserve';
 export const depositInstruction = (
   liquidityAmount: number | BN,
   from: PublicKey, // Liquidity input SPL Token account. $authority can transfer $liquidity_amount
-  to: PublicKey, // Collateral output SPL Token account,
+  to: PublicKey // Collateral output SPL Token account,
   /*lendingMarket: PublicKey,
   reserveAuthority: PublicKey,
   transferAuthority: PublicKey,
@@ -71,7 +80,7 @@ export const depositInstruction = (
   });
 };
 
-export const calculateDepositAPY = (reserve: LendingReserve) => {
-  const currentUtilization = calculateUtilizationRatio(reserve);
-  return currentUtilization;
-};
+// export const calculateDepositAPY = (reserve: LendingReserve) => {
+//   const currentUtilization = calculateUtilizationRatio(reserve);
+//   return currentUtilization;
+// };

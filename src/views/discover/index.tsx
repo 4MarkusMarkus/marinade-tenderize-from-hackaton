@@ -1,17 +1,21 @@
 import React from 'react';
-import { useLendingReserve } from '../../hooks';
+// import { useLendingReserve } from '../../hooks';
 // import { useParams } from 'react-router-dom';
 // import { Link } from 'react-router-dom';
 
-import { DepositInput } from '../../components/DepositInput';
+// import { DepositInput } from '../../components/DepositInput';
 import { Button, Card, Tabs, InputNumber } from 'antd';
 import { Line } from 'react-chartjs-2';
+import { useConnection } from '../../contexts/connection';
+// import { STAKE_POOL_ID } from '../../utils/ids';
+import { PublicKey } from '@solana/web3.js';
+// import { LendingReserve } from '../../models/lending';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
 const { TabPane } = Tabs;
 
 export const DiscoverView = () => {
-  // const connection = useConnection();
+  const connection = useConnection();
   // const { publicKey } = useWallet();
 
   const state = {
@@ -36,6 +40,14 @@ export const DiscoverView = () => {
   // if (!reserve || !lendingReserve) {
   //   return null;
   // }
+
+  // Test get LendingReserve
+  connection
+    .getAccountInfo(
+      new PublicKey('DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'),
+      'single'
+    )
+    .then((res) => console.log(res));
 
   return (
     <div

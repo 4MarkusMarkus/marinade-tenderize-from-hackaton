@@ -6,11 +6,7 @@ import {
 } from '@solana/web3.js';
 import { AccountLayout } from '@solana/spl-token';
 import { sendTransaction } from '../contexts/connection';
-import {
-  accrueInterestInstruction,
-  LendingReserve,
-  withdrawInstruction,
-} from '../models/lending';
+import { LendingReserve, withdrawInstruction } from '../models/lending';
 import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
 import { notify } from '../utils/notifications';
 import { findOrCreateAccountByMint } from './account';
@@ -44,7 +40,7 @@ export const withdraw = async (
   );
 
   const [authority] = await PublicKey.findProgramAddress(
-    [reserve.lendingMarket.toBuffer()],
+    [reserve.poolMint.toBuffer()],
     TENDERIZE_PROGRAM_ID
   );
 
@@ -68,11 +64,11 @@ export const withdraw = async (
     instructions,
     cleanupInstructions,
     accountRentExempt,
-    reserve.liquidityMint,
+    reserve.poolMint,
     signers
   );
 
-  instructions.push(accrueInterestInstruction(reserveAddress));
+  // instructions.push(accrueInterestInstruction(reserveAddress));
 
   instructions.push(
     withdrawInstruction(
@@ -80,9 +76,9 @@ export const withdraw = async (
       fromAccount,
       toAccount,
       reserveAddress,
-      reserve.collateralMint,
-      reserve.liquiditySupply,
-      reserve.lendingMarket,
+      reserve.poolMint,
+      reserve.tokenProgram,
+      reserve.poolMint,
       authority,
       transferAuthority.publicKey
     )
