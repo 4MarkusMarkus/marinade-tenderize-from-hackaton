@@ -34,10 +34,18 @@ import { LendingInstruction } from './lending';
 ///   7. `[]` User transfer authority ($authority).
 ///   8. `[]` Clock sysvar
 ///   9. '[]` Token program id
+
+export interface DepositParams {
+  userSource: PublicKey;
+  amount: number | BN;
+  userToken: PublicKey;
+}
+
 export const depositInstruction = (
-  liquidityAmount: number | BN,
-  from: PublicKey, // Liquidity input SPL Token account. $authority can transfer $liquidity_amount
-  to: PublicKey // Collateral output SPL Token account,
+  params: DepositParams
+  // liquidityAmount: number | BN,
+  // from: PublicKey, // Liquidity input SPL Token account. $authority can transfer $liquidity_amount
+  // to: PublicKey // Collateral output SPL Token account,
   /*lendingMarket: PublicKey,
   reserveAuthority: PublicKey,
   transferAuthority: PublicKey,
@@ -45,26 +53,30 @@ export const depositInstruction = (
   reserveSupply: PublicKey,
   collateralMint: PublicKey*/
 ): TransactionInstruction => {
-  const dataLayout = BufferLayout.struct([
-    BufferLayout.u8('instruction'),
-    Layout.uint64('liquidityAmount'),
-  ]);
+  // const dataLayout = BufferLayout.struct([
+  //   BufferLayout.u8('instruction'),
+  //   Layout.uint64('liquidityAmount'),
+  // ]);
 
-  const data = Buffer.alloc(dataLayout.span);
-  dataLayout.encode(
-    {
-      instruction: LendingInstruction.DepositReserveLiquidity,
-      liquidityAmount: new BN(liquidityAmount),
-    },
-    data
-  );
+  // const data = Buffer.alloc(dataLayout.span);
+  // dataLayout.encode(
+  //   {
+  //     instruction: LendingInstruction.DepositReserveLiquidity,
+  //     liquidityAmount: new BN(liquidityAmount),
+  //   },
+  //   data
+  // );
+
+  const data = Buffer.alloc(1 + 8);
+  let p = data.writeUInt8(6, 0);
+  p = data.writeBigInt64LE(BigInt(params.amount), p);
 
   const keys = [
     { pubkey: STAKE_POOL_ID, isSigner: false, isWritable: true },
     { pubkey: WITHDRAW_AUTHORITY_PDA, isSigner: false, isWritable: false },
     { pubkey: RESERVE_ADDRESS_PDA, isSigner: false, isWritable: true },
-    { pubkey: from, isSigner: false, isWritable: true },
-    { pubkey: to, isSigner: false, isWritable: true },
+    { pubkey: params.userSource, isSigner: false, isWritable: true },
+    { pubkey: params.userToken, isSigner: false, isWritable: true },
     { pubkey: OWNER_FEE_ACCOUNT, isSigner: false, isWritable: true },
     { pubkey: TENDERIZED_SOL_MINT_ID, isSigner: false, isWritable: true },
     { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },

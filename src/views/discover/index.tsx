@@ -6,9 +6,21 @@ import React from 'react';
 // import { DepositInput } from '../../components/DepositInput';
 import { Button, Card, Tabs, InputNumber } from 'antd';
 import { Line } from 'react-chartjs-2';
-import { useConnection } from '../../contexts/connection';
+import { sendTransaction, useConnection } from '../../contexts/connection';
+import { useNativeAccount } from '../../contexts/accounts';
 // import { STAKE_POOL_ID } from '../../utils/ids';
-import { PublicKey } from '@solana/web3.js';
+import {
+  PublicKey,
+  sendAndConfirmTransaction,
+  Transaction,
+} from '@solana/web3.js';
+import { depositInstruction, DepositParams } from '../../models/lending';
+import { notify } from '../../utils/notifications';
+import {
+  useWallet,
+  WalletAdapter,
+  WalletProvider,
+} from '../../contexts/wallet';
 // import { LendingReserve } from '../../models/lending';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
@@ -16,7 +28,8 @@ const { TabPane } = Tabs;
 
 export const DiscoverView = () => {
   const connection = useConnection();
-  // const { publicKey } = useWallet();
+
+  const { wallet } = useWallet();
 
   const state = {
     labels: ['January', 'February', 'March', 'April', 'May'],
@@ -42,12 +55,41 @@ export const DiscoverView = () => {
   // }
 
   // Test get LendingReserve
-  connection
-    .getAccountInfo(
-      new PublicKey('DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'),
-      'single'
-    )
-    .then((res) => console.log(res));
+  // connection
+  //   .getAccountInfo(
+  //     new PublicKey('DKZKU3K8MiBbBfurpaG2ijf6nAGoXvomNysCJZ5jbgiy'),
+  //     'single'
+  //   )
+  //   .then((res) => console.log(res));
+
+  const deposit = async (params: DepositParams) => {
+    console.log(`Deposit ${params.amount}`);
+    const transaction = new Transaction();
+    transaction.add(await depositInstruction(params));
+
+    let tx = await sendTransaction(
+      connection,
+      wallet,
+      [depositInstruction(params)],
+      [...signers]
+    );
+
+    notify({
+      message: 'Obligation accounts created',
+      description: `Transaction ${tx}`,
+      type: 'success',
+    });
+
+    // await sendAndConfirmTransaction(
+    //   connection,
+    //   transaction,
+    //   [account],
+    //   {
+    //     commitment: 'singleGossip',
+    //     preflightCommitment: 'singleGossip',
+    //   }
+    // );
+  };
 
   return (
     <div
@@ -161,6 +203,11 @@ export const DiscoverView = () => {
               <Button
                 className='tenderButton tenderButtonShade'
                 style={{ marginTop: '10px' }}
+                onClick={deposit({
+                  userSource: account,
+                  amount: 100000000000,
+                  userToken: '',
+                })}
               >
                 Stake
               </Button>
