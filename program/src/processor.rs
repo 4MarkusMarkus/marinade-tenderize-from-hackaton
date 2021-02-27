@@ -5,7 +5,7 @@ use crate::{
     instruction::{
         DelegateReserveInstruction, InitArgs, MergeStakesInstruction, StakePoolInstruction,
     },
-    stake,
+    stake::{self, StakeState},
     state::{
         CreditList, CreditRecord, StakePool, ValidatorStakeInfo, ValidatorStakeList,
         MAX_CREDIT_RECORDS, MIN_STAKE_ACCOUNT_BALANCE,
@@ -518,9 +518,14 @@ impl Processor {
         let stake_pool_info = next_account_info(account_info_iter)?;
         // Account storing validator stake list
         let validator_stake_list_info = next_account_info(account_info_iter)?;
+        let withdraw_info = next_account_info(account_info_iter)?;
+        let reserve_account_info = next_account_info(account_info_iter)?;
+        let system_program_info = next_account_info(account_info_iter)?;
+        let stake_program_info = next_account_info(account_info_iter)?;
         // Clock sysvar account
         let clock_info = next_account_info(account_info_iter)?;
         let clock = &Clock::from_account_info(clock_info)?;
+        let stake_history_info = next_account_info(account_info_iter)?;
 
         if stake_pool_info.owner != program_id {
             msg!(
@@ -549,6 +554,18 @@ impl Processor {
             return Err(StakePoolError::InvalidState.into());
         }
 
+        stake_pool.check_authority_withdraw(withdraw_info.key, program_id, stake_pool_info.key)?;
+
+        let (reserve_address, _) = Self::get_reserve_adderess(program_id, stake_pool_info.key);
+        if *reserve_account_info.key != reserve_address {
+            msg!(
+                "Expected reserve to be {} but got {}",
+                &reserve_address,
+                reserve_account_info.key
+            );
+            return Err(ProgramError::InvalidArgument);
+        }
+
         let mut changes = false;
         while let Some(validator_vote_info) = account_info_iter.next() {
             if let Some(validator_stake_record) = validator_stake_list
@@ -561,17 +578,114 @@ impl Processor {
                 let mut new_stake_count = 0u32;
                 for index in 0..validator_stake_record.stake_count {
                     let stake_account_info = next_account_info(account_info_iter)?;
-                    validator_stake_record.check_validator_stake_address(
+
+                    let stake_bump_seed = validator_stake_record.check_validator_stake_address(
                         program_id,
                         stake_pool_info.key,
                         index,
                         stake_account_info.key,
                     )?;
+
+                    let stake_signer_seeds = &[
+                        &validator_vote_info.key.to_bytes()[..32],
+                        &stake_pool_info.key.to_bytes()[..32],
+                        &unsafe { std::mem::transmute::<u32, [u8; 4]>(index) },
+                        &[stake_bump_seed],
+                    ];
+
                     // ? check stake_account_owner
-                    let balance = **stake_account_info.lamports.borrow();
+                    let mut balance = **stake_account_info.lamports.borrow();
                     if balance > 0 {
-                        validator_stake_record.balance += balance;
-                        new_stake_count = index + 1;
+                        if *stake_account_info.owner == stake::id() {
+                            // return money back if there are some free
+                            let stake_state: stake::StakeState =
+                                deserialize(&stake_account_info.data.borrow()).or_else(|_| {
+                                    msg!("Error reading stake {} state", stake_account_info.key);
+                                    Err(ProgramError::InvalidAccountData)
+                                })?;
+
+                            let mut available_lamports = balance;
+                            match stake_state {
+                                StakeState::Uninitialized => {}
+                                StakeState::Initialized(meta) => {
+                                    available_lamports -= meta.rent_exempt_reserve;
+                                }
+                                StakeState::Stake(
+                                    meta,
+                                    stake::Stake {
+                                        delegation,
+                                        credits_observed,
+                                    },
+                                ) => {
+                                    available_lamports -= meta.rent_exempt_reserve;
+                                    available_lamports -= delegation.stake;
+                                    // TODO: fix available calculation
+                                }
+                                StakeState::RewardsPool => {
+                                    msg!(
+                                        "Stake account {} is rewards pool",
+                                        stake_account_info.key
+                                    );
+                                    return Err(StakePoolError::WrongStakeState.into());
+                                }
+                            }
+
+                            if available_lamports > 0 {
+                                let withdraw_signer_seeds: &[&[_]] = &[
+                                    &stake_pool_info.key.to_bytes()[..32],
+                                    Self::AUTHORITY_WITHDRAW,
+                                    &[stake_pool.withdraw_bump_seed],
+                                ];
+
+                                invoke_signed(
+                                    &stake::withdraw(
+                                        stake_account_info.key,
+                                        withdraw_info.key,
+                                        reserve_account_info.key,
+                                        available_lamports,
+                                        None,
+                                    ),
+                                    &[
+                                        stake_account_info.clone(),
+                                        reserve_account_info.clone(),
+                                        clock_info.clone(),
+                                        stake_history_info.clone(),
+                                        withdraw_info.clone(),
+                                        stake_program_info.clone(),
+                                    ],
+                                    &[withdraw_signer_seeds],
+                                )?;
+
+                                balance -= available_lamports;
+                            }
+
+                            validator_stake_record.balance += balance;
+                            new_stake_count = index + 1;
+                        } else {
+                            if *stake_account_info.owner == system_program::id() {
+                                invoke_signed(
+                                    &system_instruction::transfer(
+                                        stake_account_info.key,
+                                        reserve_account_info.key,
+                                        balance,
+                                    ),
+                                    &[
+                                        system_program_info.clone(),
+                                        stake_account_info.clone(),
+                                        reserve_account_info.clone(),
+                                    ],
+                                    &[stake_signer_seeds],
+                                )?;
+                                continue;
+                            }
+
+                            msg!(
+                                "Invalid stake {} owner {}",
+                                stake_account_info.key,
+                                stake_account_info.owner
+                            );
+                            return Err(StakePoolError::WrongStakeState.into());
+                        }
                     }
                 }
 

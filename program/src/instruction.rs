@@ -88,8 +88,13 @@ pub enum StakePoolInstruction {
     ///   
     ///   0. `[]` Stake pool
     ///   1. `[w]` Validator stake list storage account
-    ///   2. `[]` Sysvar clock account
-    ///   3. ..3+N ` [] (validator + all stakes) repeated
+    ///   2. `[]` Stake pool withdraw authority
+    ///   3. `[w]` Reserve account (PDA)
+    ///   4. `[]` System program
+    ///   5. `[]` Stake program
+    ///   6. `[]` Clock sysvar
+    ///   7. `[]` Stake history sysvar that carries stake warmup/cooldown history
+    ///   8. ..8+N `[]` validator + `[w]` all stakes repeated
     UpdateListBalance,
 
     ///   5) Updates total pool balance based on balances in validator stake account list storage

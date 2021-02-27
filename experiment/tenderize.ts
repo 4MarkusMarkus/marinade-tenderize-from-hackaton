@@ -913,7 +913,20 @@ export class TenderizeProgram {
         isSigner: false,
         isWritable: true,
       },
+      {
+        pubkey: await this.getWithdrawAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      {
+        pubkey: await this.getReserveAddress(),
+        isSigner: false,
+        isWritable: true,
+      },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
     ];
 
     const allValidators = await this.readValidators();
@@ -932,7 +945,7 @@ export class TenderizeProgram {
         keys.push({
           pubkey: stake,
           isSigner: false,
-          isWritable: false,
+          isWritable: true,
         });
       }
     }
