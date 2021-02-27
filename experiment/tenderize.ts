@@ -49,6 +49,12 @@ export interface WithdrawParams {
   userSolTarget: PublicKey;
 }
 
+export interface CreditParams {
+  userTokenSource: PublicKey;
+  amount: number;
+  userSolTarget: PublicKey | Account;
+}
+
 export interface TestDepositParams {
   amount: number;
   userWallet: Account;
@@ -478,6 +484,53 @@ export class TenderizeProgram {
         { pubkey: params.userSolTarget, isSigner: false, isWritable: true },
         { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async credit(params: CreditParams) {
+    if (params.amount >= 0) {
+      console.log(`Credit ${params.amount}`);
+    } else {
+      console.log(`Uncredit ${-params.amount}`);
+    }
+    const transaction = new Transaction();
+    transaction.add(await this.creditInstruction(params));
+    const signatures = [this.payerAccount];
+    if (params.amount < 0) {
+      signatures.push(params.userSolTarget as Account)
+    }
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      signatures,
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip',
+      }
+    );
+  }
+
+  async creditInstruction(params: CreditParams) {
+    const data = Buffer.alloc(1 + 8);
+    let p = data.writeUInt8(params.amount >= 0 ? 10 : 11, 0);
+    p = data.writeBigInt64LE(BigInt(Math.abs(params.amount)), p);
+
+    return new TransactionInstruction({
+      keys: [
+        { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.creditListAccount.publicKey, isSigner: false, isWritable: true },
+        { pubkey: this.creditReserve, isSigner: false, isWritable: true },
+        {
+          pubkey: await this.getWithdrawAuthority(),
+          isSigner: false,
+          isWritable: false,
+        },
+        { pubkey: params.userTokenSource, isSigner: false, isWritable: true },
+        { pubkey: params.amount >= 0 ? params.userSolTarget as PublicKey : (params.userSolTarget as Account).publicKey, isSigner: false, isWritable: true },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ],
       programId: this.programId,

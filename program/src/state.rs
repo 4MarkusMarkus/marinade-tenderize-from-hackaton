@@ -251,7 +251,7 @@ impl ValidatorStakeList {
         if number_of_validators > MAX_VALIDATORS {
             return Err(ProgramError::InvalidAccountData);
         }
-        let mut validators: Vec<ValidatorStakeInfo> = Vec::with_capacity(number_of_validators);
+        let mut validators: Vec<ValidatorStakeInfo> = Vec::with_capacity(number_of_validators + 1);
 
         let mut from = Self::HEADER_LEN;
         let mut to = from + ValidatorStakeInfo::LEN;
@@ -418,14 +418,14 @@ impl CreditList {
         if number_of_records > MAX_CREDIT_RECORDS {
             return Err(ProgramError::InvalidAccountData);
         }
-        let mut credits: Vec<CreditRecord> = Vec::with_capacity(number_of_records);
+        let mut credits: Vec<CreditRecord> = Vec::with_capacity(number_of_records + 1);
 
         let mut from = Self::HEADER_LEN;
-        let mut to = from + Self::LEN;
+        let mut to = from + CreditRecord::LEN;
         for _ in 0..number_of_records {
             credits.push(CreditRecord::deserialize(&input[from..to])?);
-            from += Self::LEN;
-            to += Self::LEN;
+            from += CreditRecord::LEN;
+            to += CreditRecord::LEN;
         }
         Ok(Self {
             version: input[0],
@@ -444,11 +444,11 @@ impl CreditList {
         output[0] = self.version;
         output[1..3].copy_from_slice(&u16::to_le_bytes(self.credits.len() as u16));
         let mut from = Self::HEADER_LEN;
-        let mut to = from + Self::LEN;
+        let mut to = from + CreditRecord::LEN;
         for record in &self.credits {
             record.serialize(&mut output[from..to])?;
-            from += Self::LEN;
-            to += Self::LEN;
+            from += CreditRecord::LEN;
+            to += CreditRecord::LEN;
         }
         Ok(())
     }
@@ -457,8 +457,10 @@ impl CreditList {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct CreditRecord {
-    user: Pubkey,
-    token_amount: u64,
+    /// User
+    pub user: Pubkey,
+    /// Amount from reserve
+    pub token_amount: u64,
 }
 
 impl CreditRecord {

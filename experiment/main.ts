@@ -29,7 +29,7 @@ async function main() {
   }
 
   const reserve = await tester.connection.getAccountInfo(await tester.tenderize!.getReserveAddress());
-  if (reserve!.lamports < 100000000000) {
+  if (!reserve || reserve.lamports < 100000000000) {
     console.log('\n ...Calling deposit function...');
 
     await tester.tenderize!.deposit({
@@ -42,6 +42,11 @@ async function main() {
   }
 
   if ((await tester.tenderize!.readValidators()).length == 0) {
+    console.log('\n ...Updating pool...');
+
+    await tester.tenderize!.updatePool();
+    state = await tester.tenderize!.readState();
+
     console.log('\n ...Add validators...');
     for (const validator of validators) {
       await tester.tenderize!.addValidator({
@@ -50,7 +55,7 @@ async function main() {
     }
   }
 
-  if (true) {
+  if (false) {
     console.log('\n ...Approving token...');
     await execShellCommand(
       `spl-token approve ${tester.userTokenAccount.publicKey} 1 ${await (
@@ -67,6 +72,32 @@ async function main() {
 
     state = await tester.tenderize!.readState();
   }
+
+  if (true) {
+    console.log('\n ...Approving token...');
+    await execShellCommand(
+      `spl-token approve ${tester.userTokenAccount.publicKey} 1 ${await (
+        await tester.tenderize!.getWithdrawAuthority()
+      ).toBase58()}`
+    );
+
+    console.log('\n ...Calling credit function...');
+    await tester.tenderize!.credit({
+      userTokenSource: tester.userTokenAccount.publicKey,
+      amount: 1000000000,
+      userSolTarget: tester.payerAccount.publicKey,
+    });
+
+    console.log('\n ...Calling uncredit function...');
+    await tester.tenderize!.credit({
+      userTokenSource: tester.userTokenAccount.publicKey,
+      amount: -200000000,
+      userSolTarget: tester.payerAccount,
+    });
+
+    state = await tester.tenderize!.readState();
+  }
+
   if (true) {
     console.log('\n ...Delegating reserve...');
 
