@@ -52,7 +52,8 @@ export interface WithdrawParams {
 export interface CreditParams {
   userTokenSource: PublicKey;
   amount: number;
-  userSolTarget: PublicKey | Account;
+  userSolTarget: PublicKey;
+  cancelAuthority: PublicKey | Account;
 }
 
 export interface TestDepositParams {
@@ -116,6 +117,12 @@ export interface State {
   lastEpochUpdate: bigint;
   feeDenominator: bigint;
   feeNumerator: bigint;
+}
+
+export interface Creditor {
+  target: PublicKey;
+  cancelAuthority: PublicKey;
+  amount: number;
 }
 
 export class TenderizeProgram {
@@ -207,7 +214,7 @@ export class TenderizeProgram {
     const stakePoolLength =
       1000 + 4 + 32 + 4 + 4 + 32 + 32 + 32 + 8 + 8 + 8 + 2 * 8;
     const validatorStakeListLength = 60000 + 4 + 4 + 1000 * (32 + 8 + 8);
-    const creditListLength = 10000 * 64;
+    const creditListLength = 5 + 10000 * (32 + 32 + 32);
 
     const transaction = new Transaction();
     transaction.add(
@@ -501,7 +508,7 @@ export class TenderizeProgram {
     transaction.add(await this.creditInstruction(params));
     const signatures = [this.payerAccount];
     if (params.amount < 0) {
-      signatures.push(params.userSolTarget as Account)
+      signatures.push(params.cancelAuthority as Account)
     }
     await sendAndConfirmTransaction(
       this.connection,
@@ -530,7 +537,8 @@ export class TenderizeProgram {
           isWritable: false,
         },
         { pubkey: params.userTokenSource, isSigner: false, isWritable: true },
-        { pubkey: params.amount >= 0 ? params.userSolTarget as PublicKey : (params.userSolTarget as Account).publicKey, isSigner: false, isWritable: true },
+        { pubkey: params.userSolTarget, isSigner: false, isWritable: false },
+        { pubkey: (params.amount >= 0) ? params.cancelAuthority as PublicKey : (params.cancelAuthority as Account).publicKey, isSigner: (params.amount < 0), isWritable: false },
         { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
       ],
       programId: this.programId,
@@ -965,6 +973,83 @@ export class TenderizeProgram {
     await this.unstake({
       unstakes
     });
+  }
+
+  async payCreditors(maxCount: number) {
+    console.log(`Pay creditors`);
+    const transaction = new Transaction();
+    transaction.add(await this.payCreditorsInstruction(maxCount));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip',
+      }
+    );
+  }
+
+  async payCreditorsInstruction(maxCount: number) {
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(15, 0);
+
+    const state = await this.readState();
+
+    const keys = [
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.creditListAccount.publicKey, isSigner: false, isWritable: true },
+      {
+        pubkey: await this.getWithdrawAuthority(),
+        isSigner: false,
+        isWritable: false,
+      },
+      { pubkey: await this.getReserveAddress(), isSigner: false, isWritable: true },
+      { pubkey: state!.creditReserve, isSigner: false, isWritable: true },
+      { pubkey: this.poolMintToken, isSigner: false, isWritable: true },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ];
+
+    const creditors = await this.readCreditors();
+    for (let i = 0; ((maxCount <= 0) || (i < maxCount)) && (i < creditors.length); ++i) {
+      keys.push(
+        { pubkey: creditors[i].target, isSigner: false, isWritable: true },
+      )
+    }
+
+    return new TransactionInstruction({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async readCreditors(): Promise<Creditor[]> {
+    const state = await this.readState();
+    const creditorsAccount = await this.connection.getAccountInfo(state!.creditList);
+    const data = creditorsAccount!.data;
+    const count = data.readUInt16LE(1);
+    const creditors: Creditor[] = [];
+
+    let p = 3;
+    for (let i = 0; i < count; ++i) {
+      const target = new PublicKey(data.slice(p, p + 32));
+      p += 32;
+      const cancelAuthority = new PublicKey(data.slice(p, p + 32));
+      p += 32;
+      const amount = Number(data.readBigUInt64LE(p));
+      p += 8;
+      creditors.push({
+        target,
+        cancelAuthority,
+        amount
+      })
+    }
+
+    return creditors;
   }
 
   async updateListBalanceReserve(

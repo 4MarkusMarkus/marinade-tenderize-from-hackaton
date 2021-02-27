@@ -144,12 +144,11 @@ pub enum StakePoolInstruction {
     ///   1. `[]` Stake pool withdraw authority
     ///   2. `[w]` Reserve account (PDA)
     ///   3. `[w]` User account with pool tokens to burn from
-    ///   4. `[s]` Burn authority
-    ///   5. `[w]` Pool token mint account
-    ///   6. `[w]` Target to SOL transfer
-    ///   7. `[]` Rent sysvar
-    ///   8. `[]` System program
-    ///   9. `[]` Pool token program id
+    ///   4. `[w]` Pool token mint account
+    ///   5. `[w]` Target to SOL transfer
+    ///   6. `[]` Rent sysvar
+    ///   7. `[]` System program
+    ///   8. `[]` Pool token program id
     ///   userdata: amount to withdraw
     Withdraw(u64),
 
@@ -174,24 +173,26 @@ pub enum StakePoolInstruction {
 
     ///   10) Credit
     ///
-    ///   0. `[w]` Stake pool
+    ///   0. `[]` Stake pool
     ///   1. `[w]` Credit list account
     ///   2. `[w]` Credit resrve
     ///   3. `[]` Stake pool withdraw authority
     ///   4. `[w]` User account with pool tokens to burn from
     ///   5. `[]` Target to SOL transfer
-    ///   6. `[]` Pool token program id
+    ///   6. `[]` Cancel authority
+    ///   7. `[]` Pool token program id
     ///   userdata: amount to withdraw
     Credit(u64),
 
     ///   11) Uncredit
     ///
-    ///   0. `[w]` Stake pool
+    ///   0. `[]` Stake pool
     ///   1. `[w]` Credit list account
     ///   2. `[w]` Credit resrve
     ///   3. `[]` Stake pool withdraw authority
     ///   4. `[w]` User account with pool tokens for returning
-    ///   5. `[s]` Target to SOL transfer for canceling
+    ///   5. `[]` Target to SOL transfer for canceling
+    ///   6. `[s]` Cancel authority
     ///   6. `[]` Pool token program id
     ///   userdata: amount to withdraw
     Uncredit(u64),
@@ -236,6 +237,21 @@ pub enum StakePoolInstruction {
     ///   6.  `[]` Stake history sysvar that carries stake warmup/cooldown history
     ///   7..7+? `[w]` stake source `[w]` stake split target (optional)
     Unstake(Vec<UnstakeInstruction>),
+
+    /// 15. Delayed withdraw
+    ///
+    ///   0. `[w]` Stake pool
+    ///   1. `[w]` Credit list account
+    ///   2. `[]` Stake pool withdraw authority
+    ///   3. `[w]` Reserve account (PDA)
+    ///   4. `[w]` Credit resrve
+    ///   5. `[w]` Pool token mint account
+    ///   6. `[]` Rent sysvar
+    ///   7.  `[]` Clock sysvar
+    ///   8. `[]` System program
+    ///   9. `[]` Pool token program id
+    ///  10..10+N `[w]` user target account
+    PayCreditors,
 }
 
 impl StakePoolInstruction {
@@ -332,6 +348,7 @@ impl StakePoolInstruction {
                 };
                 Self::Unstake(instructions.to_vec())
             }
+            15 => Self::PayCreditors,
             _ => return Err(ProgramError::InvalidAccountData),
         })
     }

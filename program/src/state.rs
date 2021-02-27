@@ -380,16 +380,16 @@ impl CreditList {
 
     /// Check if contains validator with particular pubkey
     pub fn contains(&self, user: &Pubkey) -> bool {
-        self.credits.iter().any(|x| x.user == *user)
+        self.credits.iter().any(|x| x.sol_target == *user)
     }
 
     /// Check if contains validator with particular pubkey (mutable)
     pub fn find_mut(&mut self, user: &Pubkey) -> Option<&mut CreditRecord> {
-        self.credits.iter_mut().find(|x| x.user == *user)
+        self.credits.iter_mut().find(|x| x.sol_target == *user)
     }
     /// Check if contains validator with particular pubkey (immutable)
     pub fn find(&self, user: &Pubkey) -> Option<&CreditRecord> {
-        self.credits.iter().find(|x| x.user == *user)
+        self.credits.iter().find(|x| x.sol_target == *user)
     }
 
     /// Check if validator stake list is initialized
@@ -457,8 +457,10 @@ impl CreditList {
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct CreditRecord {
-    /// User
-    pub user: Pubkey,
+    /// User account for receiving sols
+    pub sol_target: Pubkey,
+    /// Signature to cancel request
+    pub cancel_authority: Pubkey,
     /// Amount from reserve
     pub token_amount: u64,
 }

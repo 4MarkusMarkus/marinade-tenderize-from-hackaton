@@ -81,21 +81,36 @@ async function main() {
       ).toBase58()}`
     );
 
+    const cancelAuthority = new Account();
+
     console.log('\n ...Calling credit function...');
     await tester.tenderize!.credit({
       userTokenSource: tester.userTokenAccount.publicKey,
-      amount: 1000000000,
+      amount: 10000000,
       userSolTarget: tester.payerAccount.publicKey,
+      cancelAuthority: cancelAuthority.publicKey
     });
 
     console.log('\n ...Calling uncredit function...');
     await tester.tenderize!.credit({
       userTokenSource: tester.userTokenAccount.publicKey,
-      amount: -200000000,
-      userSolTarget: tester.payerAccount,
+      amount: -2000000,
+      userSolTarget: tester.payerAccount.publicKey,
+      cancelAuthority
     });
 
     state = await tester.tenderize!.readState();
+  }
+
+  if (true) {
+    console.log('\n ...Updating pool...');
+
+    await tester.tenderize!.updatePool();
+    state = await tester.tenderize!.readState();
+
+    console.log('\n ...Pay creditors...');
+
+    await tester.tenderize!.payCreditors(0);
   }
 
   if (true) {
