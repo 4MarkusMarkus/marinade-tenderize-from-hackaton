@@ -6,7 +6,7 @@ import {
 } from '@solana/web3.js';
 import { AccountLayout } from '@solana/spl-token';
 import { sendTransaction } from '../contexts/connection';
-import { LendingReserve, withdrawInstruction } from '../models/lending';
+import { Tenderize, withdrawInstruction } from '../models/lending';
 import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
 import { notify } from '../utils/notifications';
 import { findOrCreateAccountByMint } from './account';
@@ -15,7 +15,7 @@ import { approve, TokenAccount } from '../models';
 export const withdraw = async (
   from: TokenAccount, // CollateralAccount
   amountLamports: number, // in collateral token (lamports)
-  reserve: LendingReserve,
+  reserve: Tenderize,
   reserveAddress: PublicKey,
   connection: Connection,
   wallet: any

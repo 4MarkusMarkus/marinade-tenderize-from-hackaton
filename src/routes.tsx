@@ -7,6 +7,7 @@ import { MarketProvider } from "./contexts/market";
 import { AppLayout } from "./components/Layout";
 
 import { FaucetView, HomeView, DiscoverView } from "./views";
+import { TenderizeProvider } from "./contexts/tenderize";
 
 export function Routes() {
   return (
@@ -16,13 +17,15 @@ export function Routes() {
           <WalletProvider>
             <AccountsProvider>
               <MarketProvider>
-                <AppLayout>
-                  <Switch>
-                    <Route exact path="/" component={() => <HomeView />} />
-                    <Route exact path="/faucet" children={<FaucetView />} />
-                    <Route exact path="/discover" children={<DiscoverView />} />
-                  </Switch>
-                </AppLayout>
+                <TenderizeProvider>
+                  <AppLayout>
+                    <Switch>
+                      <Route exact path="/" component={() => <HomeView />} />
+                      <Route exact path="/faucet" children={<FaucetView />} />
+                      <Route exact path="/discover" children={<DiscoverView />} />
+                    </Switch>
+                  </AppLayout>
+                </TenderizeProvider>
               </MarketProvider>
             </AccountsProvider>
           </WalletProvider>

@@ -6,7 +6,7 @@ import * as BufferLayout from 'buffer-layout';
 import * as Layout from './../../utils/layout';
 // import { LendingInstruction } from './lending';
 
-export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.struct(
+export const TenderizeLayout: typeof BufferLayout.Structure = BufferLayout.struct(
   [
     BufferLayout.u8('version'),
     Layout.publicKey('owner'),
@@ -28,11 +28,11 @@ export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.
   ]
 );
 
-export const isLendingReserve = (info: AccountInfo<Buffer>) => {
-  return info.data.length === LendingReserveLayout.span;
+export const isTenderize = (info: AccountInfo<Buffer>) => {
+  return info.data.length === TenderizeLayout.span;
 };
 
-export interface LendingReserve {
+export interface Tenderize {
   version: number;
   owner: PublicKey;
   validatorStakeList: PublicKey;
@@ -48,12 +48,12 @@ export interface LendingReserve {
   feeNumerator: BN;
 }
 
-export const LendingReserveParser = (
+export const TenderizeParser = (
   pubKey: PublicKey,
   info: AccountInfo<Buffer>
 ) => {
   const buffer = Buffer.from(info.data);
-  const data = LendingReserveLayout.decode(buffer) as LendingReserve;
+  const data = TenderizeLayout.decode(buffer) as Tenderize;
 
   // if (data.lastUpdateSlot.toNumber() === 0) {
   //   return;
