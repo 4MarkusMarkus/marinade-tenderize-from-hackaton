@@ -6,21 +6,21 @@ import React from 'react';
 // import { DepositInput } from '../../components/DepositInput';
 import { Button, Card, Tabs, InputNumber } from 'antd';
 import { Line } from 'react-chartjs-2';
-import { sendTransaction, useConnection } from '../../contexts/connection';
-import { useNativeAccount } from '../../contexts/accounts';
-// import { STAKE_POOL_ID } from '../../utils/ids';
-import {
-  PublicKey,
-  sendAndConfirmTransaction,
-  Transaction,
-} from '@solana/web3.js';
-import { depositInstruction, DepositParams } from '../../models/lending';
-import { notify } from '../../utils/notifications';
-import {
-  useWallet,
-  WalletAdapter,
-  WalletProvider,
-} from '../../contexts/wallet';
+// import { sendTransaction, useConnection } from '../../contexts/connection';
+// import { useNativeAccount } from '../../contexts/accounts';
+// // import { STAKE_POOL_ID } from '../../utils/ids';
+// import {
+//   PublicKey,
+//   sendAndConfirmTransaction,
+//   Transaction,
+// } from '@solana/web3.js';
+// import { depositInstruction, DepositParams } from '../../models/lending';
+// import { notify } from '../../utils/notifications';
+// import {
+//   useWallet,
+//   WalletAdapter,
+//   WalletProvider,
+// } from '../../contexts/wallet';
 import { DepositInput } from '../../components/DepositInput';
 // import { LendingReserve } from '../../models/lending';
 
@@ -28,19 +28,103 @@ const solanaLogo = require('../../img/solanaLogo.svg');
 const { TabPane } = Tabs;
 
 export const DiscoverView = () => {
-  const connection = useConnection();
+  // const connection = useConnection();
 
-  const { wallet } = useWallet();
+  // const { wallet } = useWallet();
 
   const state = {
-    labels: ['January', 'February', 'March', 'April', 'May'],
+    labels: [
+      `Jan-21`,
+      `Feb-21`,
+      `Mar-21`,
+      `Apr-21`,
+      `May-21`,
+      `Jun-21`,
+      `Jul-21`,
+      `Aug-21`,
+      `Sep-21`,
+      `Oct -21`,
+      `Nov-21`,
+      `Dec-21`,
+      `Jan-22`,
+      `Feb-22`,
+      `Mar-22`,
+      `Apr-22`,
+      `May-22`,
+      `Jun-22`,
+      `Jul-22`,
+      `Aug-22`,
+      `Sep-22`,
+      `Oct -22`,
+      `Nov-22`,
+      `Dec-22`,
+    ],
+
     datasets: [
       {
-        label: 'Price',
+        label: 'SOL',
         backgroundColor: 'rgba(75,192,192,1)',
         borderColor: 'rgba(75,192,192,1)',
         borderWidth: 2,
-        data: [12.8, 12.5, 13.4, 14, 13.8],
+        data: [
+          1342,
+          1301.74,
+          1236.66,
+          1310.86,
+          1245.32,
+          1444.58,
+          1531.26,
+          1745.64,
+          1763.1,
+          1780.74,
+          1673.9,
+          1824.56,
+          2061.76,
+          1855.59,
+          2152.49,
+          2217.07,
+          1995.37,
+          2015.33,
+          2075.79,
+          1972.01,
+          1932.57,
+          2222.46,
+          2200.24,
+          2640.29,
+        ],
+        fill: false,
+      },
+      {
+        label: 'tSOL',
+        backgroundColor: 'orange',
+        borderColor: 'orange',
+        borderWidth: 2,
+        data: [
+          1342,
+          1344.05,
+          1309.84,
+          1428.93,
+          1399.34,
+          1667.88,
+          1825.42,
+          2148.62,
+          2231.59,
+          2319.66,
+          2238.63,
+          2511.29,
+          2929.99,
+          2702.93,
+          3237.3,
+          3412.23,
+          3160.59,
+          3280,
+          3488.19,
+          3391.12,
+          3406.38,
+          4021.81,
+          4097.73,
+          5044.31,
+        ],
         fill: false,
       },
     ],
@@ -63,34 +147,34 @@ export const DiscoverView = () => {
   //   )
   //   .then((res) => console.log(res));
 
-  const deposit = async (params: DepositParams) => {
-    console.log(`Deposit ${params.amount}`);
-    const transaction = new Transaction();
-    transaction.add(await depositInstruction(params));
+  // const deposit = async (params: DepositParams) => {
+  //   console.log(`Deposit ${params.amount}`);
+  //   const transaction = new Transaction();
+  //   transaction.add(await depositInstruction(params));
 
-    let tx = await sendTransaction(
-      connection,
-      wallet!,
-      [depositInstruction(params)],
-      []
-    );
+  //   let tx = await sendTransaction(
+  //     connection,
+  //     wallet!,
+  //     [depositInstruction(params)],
+  //     []
+  //   );
 
-    notify({
-      message: 'Obligation accounts created',
-      description: `Transaction ${tx}`,
-      type: 'success',
-    });
+  //   notify({
+  //     message: 'Obligation accounts created',
+  //     description: `Transaction ${tx}`,
+  //     type: 'success',
+  //   });
 
-    // await sendAndConfirmTransaction(
-    //   connection,
-    //   transaction,
-    //   [account],
-    //   {
-    //     commitment: 'singleGossip',
-    //     preflightCommitment: 'singleGossip',
-    //   }
-    // );
-  };
+  //   // await sendAndConfirmTransaction(
+  //   //   connection,
+  //   //   transaction,
+  //   //   [account],
+  //   //   {
+  //   //     commitment: 'singleGossip',
+  //   //     preflightCommitment: 'singleGossip',
+  //   //   }
+  //   // );
+  // };
 
   return (
     <div
@@ -111,13 +195,13 @@ export const DiscoverView = () => {
         }}
       >
         <div>
-          <h1>tSOL Share Price</h1>
+          <h1>Price comparison of 100 tokens.</h1>
           <Card className='card'>
             <Line
               data={state}
               options={{
                 legend: {
-                  display: false,
+                  display: true,
                 },
                 scales: {
                   yAxes: [
@@ -196,12 +280,12 @@ export const DiscoverView = () => {
               <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
               <span> SOL</span>
               <br />
-              <DepositInput
-              />
+              <DepositInput />
               <Button
                 className='tenderButton tenderButtonShade'
                 style={{ marginTop: '10px' }}
-                onClick={() => alert("Not implemented")
+                onClick={
+                  () => alert('Not implemented')
                   /*deposit({
                     userSource: account,
                     amount: 100000000000,

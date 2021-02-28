@@ -5,21 +5,19 @@ import {
   useTokenName,
   useUserBalance,
 } from '../../hooks';
-import { LendingReserve } from '../../models/lending';
+// import { LendingReserve } from '../../models/lending';
 import { TokenIcon } from '../TokenIcon';
 import { Button, Card, Slider } from 'antd';
 import { NumericInput } from '../Input/numeric';
 import { useConnection } from '../../contexts/connection';
 import { useWallet } from '../../contexts/wallet';
 import { deposit } from '../../actions/deposit';
-import { PublicKey } from '@solana/web3.js';
+// import { PublicKey } from '@solana/web3.js';
 import { ActionConfirmation } from './../ActionConfirmation';
 import { LABELS, marks } from '../../constants';
-import { TENDERIZED_SOL_MINT_ID, WRAPPED_SOL_MINT } from '../../utils/ids';
+import { WRAPPED_SOL_MINT } from '../../utils/ids';
 
-export const DepositInput = (props: {
-  className?: string;
-}) => {
+export const DepositInput = (props: { className?: string }) => {
   const connection = useConnection();
   const { wallet } = useWallet();
   const [pendingTx, setPendingTx] = useState(false);
@@ -65,7 +63,7 @@ export const DepositInput = (props: {
         setValue('');
         setShowConfirmation(true);
       } catch (e) {
-        console.log(`error: ${e}`)
+        console.log(`error: ${e}`);
       } finally {
         setPendingTx(false);
       }
@@ -95,43 +93,43 @@ export const DepositInput = (props: {
       {showConfirmation ? (
         <ActionConfirmation onClose={() => setShowConfirmation(false)} />
       ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-around',
-            }}
-          >
-            <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
-            <div className='token-input'>
-              <TokenIcon mintAddress={WRAPPED_SOL_MINT} />
-              <NumericInput
-                value={value}
-                onChange={setValue}
-                autoFocus={true}
-                style={{
-                  fontSize: 20,
-                  boxShadow: 'none',
-                  borderColor: 'transparent',
-                  outline: 'transparent',
-                }}
-                placeholder='0.00'
-              />
-              <div>{name}</div>
-            </div>
-
-            <Slider marks={marks} value={pct} onChange={setPct} />
-
-            <Button
-              type='primary'
-              onClick={onDeposit}
-              loading={pendingTx}
-              disabled={fromAccounts.length === 0}
-            >
-              {LABELS.DEPOSIT_ACTION}
-            </Button>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-around',
+          }}
+        >
+          <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
+          <div className='token-input'>
+            <TokenIcon mintAddress={WRAPPED_SOL_MINT} />
+            <NumericInput
+              value={value}
+              onChange={setValue}
+              autoFocus={true}
+              style={{
+                fontSize: 20,
+                boxShadow: 'none',
+                borderColor: 'transparent',
+                outline: 'transparent',
+              }}
+              placeholder='0.00'
+            />
+            <div>{name}</div>
           </div>
-        )}
+
+          <Slider marks={marks} value={pct} onChange={setPct} />
+
+          <Button
+            type='primary'
+            onClick={onDeposit}
+            loading={pendingTx}
+            disabled={fromAccounts.length === 0}
+          >
+            {LABELS.DEPOSIT_ACTION}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 };

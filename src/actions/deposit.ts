@@ -1,18 +1,14 @@
 import {
   Account,
   Connection,
-  PublicKey,
+  // PublicKey,
   TransactionInstruction,
 } from '@solana/web3.js';
 import { sendTransaction } from '../contexts/connection';
 import { notify } from '../utils/notifications';
-import { depositInstruction, LendingReserve } from './../models/lending';
+import { depositInstruction } from './../models/lending';
 import { AccountLayout } from '@solana/spl-token';
-import {
-  createUninitializedAccount,
-  ensureSplAccount,
-  findOrCreateAccountByMint,
-} from './account';
+import { ensureSplAccount, findOrCreateAccountByMint } from './account';
 import { approve, TokenAccount } from '../models';
 import { WalletAdapter } from '../contexts/wallet';
 import { TENDERIZED_SOL_MINT_ID } from '../utils/ids';
@@ -77,7 +73,6 @@ export const deposit = async (
     signers
   );
 
-
   // instructions.push(accrueInterestInstruction(reserveAddress));
 
   // deposit
@@ -86,7 +81,7 @@ export const deposit = async (
       {
         amount: amountLamports,
         userSource: fromAccount,
-        userToken: toAccount
+        userToken: toAccount,
       }
       /*reserve.lendingMarket,
       authority,
@@ -96,7 +91,6 @@ export const deposit = async (
       reserve.collateralMint*/
     )
   );
-
 
   try {
     let tx = await sendTransaction(
