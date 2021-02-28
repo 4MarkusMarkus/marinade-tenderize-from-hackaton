@@ -33,7 +33,7 @@ export let DEPOSIT_AUTHORITY_PDA: PublicKey;
 export let RESERVE_ADDRESS_PDA: PublicKey;
 export let TEMP_ACCOUNT_PDA: PublicKey;
 
-export async function initConstants() {
+const initConstants = async () => {
   WITHDRAW_AUTHORITY_PDA = (
     await PublicKey.findProgramAddress(
       [STAKE_POOL_ID.toBuffer(), Buffer.from('withdraw')],
@@ -58,7 +58,9 @@ export async function initConstants() {
       TENDERIZE_PROGRAM_ID
     )
   )[0];
-}
+};
+
+initConstants();
 
 export const PROGRAM_IDS = [
   {
