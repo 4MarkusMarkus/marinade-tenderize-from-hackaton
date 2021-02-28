@@ -60,13 +60,13 @@ export const DepositInput = (props: {
           reserve,
           address,
           connection,
-          wallet
+          wallet!
         );
 
         setValue('');
         setShowConfirmation(true);
-      } catch {
-        // TODO:
+      } catch (e) {
+        console.log(`error: ${e}`)
       } finally {
         setPendingTx(false);
       }
@@ -98,43 +98,43 @@ export const DepositInput = (props: {
       {showConfirmation ? (
         <ActionConfirmation onClose={() => setShowConfirmation(false)} />
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-around',
-          }}
-        >
-          <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
-          <div className='token-input'>
-            <TokenIcon mintAddress={reserve?.poolMint} />
-            <NumericInput
-              value={value}
-              onChange={setValue}
-              autoFocus={true}
-              style={{
-                fontSize: 20,
-                boxShadow: 'none',
-                borderColor: 'transparent',
-                outline: 'transparent',
-              }}
-              placeholder='0.00'
-            />
-            <div>{name}</div>
-          </div>
-
-          <Slider marks={marks} value={pct} onChange={setPct} />
-
-          <Button
-            type='primary'
-            onClick={onDeposit}
-            loading={pendingTx}
-            disabled={fromAccounts.length === 0}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-around',
+            }}
           >
-            {LABELS.DEPOSIT_ACTION}
-          </Button>
-        </div>
-      )}
+            <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
+            <div className='token-input'>
+              <TokenIcon mintAddress={reserve?.poolMint} />
+              <NumericInput
+                value={value}
+                onChange={setValue}
+                autoFocus={true}
+                style={{
+                  fontSize: 20,
+                  boxShadow: 'none',
+                  borderColor: 'transparent',
+                  outline: 'transparent',
+                }}
+                placeholder='0.00'
+              />
+              <div>{name}</div>
+            </div>
+
+            <Slider marks={marks} value={pct} onChange={setPct} />
+
+            <Button
+              type='primary'
+              onClick={onDeposit}
+              loading={pendingTx}
+              disabled={fromAccounts.length === 0}
+            >
+              {LABELS.DEPOSIT_ACTION}
+            </Button>
+          </div>
+        )}
     </Card>
   );
 };
