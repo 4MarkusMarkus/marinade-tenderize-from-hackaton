@@ -62,39 +62,6 @@ export const DiscoverView = () => {
 
     datasets: [
       {
-        label: 'SOL',
-        backgroundColor: 'rgba(75,192,192,1)',
-        borderColor: 'rgba(75,192,192,1)',
-        borderWidth: 2,
-        data: [
-          1342,
-          1301.74,
-          1236.66,
-          1310.86,
-          1245.32,
-          1444.58,
-          1531.26,
-          1745.64,
-          1763.1,
-          1780.74,
-          1673.9,
-          1824.56,
-          2061.76,
-          1855.59,
-          2152.49,
-          2217.07,
-          1995.37,
-          2015.33,
-          2075.79,
-          1972.01,
-          1932.57,
-          2222.46,
-          2200.24,
-          2640.29,
-        ],
-        fill: false,
-      },
-      {
         label: 'tSOL',
         backgroundColor: 'orange',
         borderColor: 'orange',
@@ -124,6 +91,39 @@ export const DiscoverView = () => {
           4021.81,
           4097.73,
           5044.31,
+        ],
+        fill: false,
+      },
+      {
+        label: 'SOL',
+        backgroundColor: 'rgba(75,192,192,1)',
+        borderColor: 'rgba(75,192,192,1)',
+        borderWidth: 2,
+        data: [
+          1342,
+          1301.74,
+          1236.66,
+          1310.86,
+          1245.32,
+          1444.58,
+          1531.26,
+          1745.64,
+          1763.1,
+          1780.74,
+          1673.9,
+          1824.56,
+          2061.76,
+          1855.59,
+          2152.49,
+          2217.07,
+          1995.37,
+          2015.33,
+          2075.79,
+          1972.01,
+          1932.57,
+          2222.46,
+          2200.24,
+          2640.29,
         ],
         fill: false,
       },
@@ -195,7 +195,8 @@ export const DiscoverView = () => {
         }}
       >
         <div>
-          <h1>Price comparison of 100 tokens.</h1>
+          <h1>Projected tSOL price when staking 100 SOL with Tenderize</h1>
+          <h3>(compared to HODL SOL)</h3>
           <Card className='card'>
             <Line
               data={state}
@@ -219,31 +220,7 @@ export const DiscoverView = () => {
             />
           </Card>
         </div>
-        <div style={{ marginTop: '30px' }}>
-          <h1>tSOL Vault Rewards</h1>
-          <Card className='card'>
-            <Line
-              data={state}
-              options={{
-                legend: {
-                  display: false,
-                },
-                scales: {
-                  yAxes: [
-                    {
-                      ticks: {
-                        // Include a dollar sign in the ticks
-                        callback: function (value: any) {
-                          return '$' + value;
-                        },
-                      },
-                    },
-                  ],
-                },
-              }}
-            />
-          </Card>
-        </div>
+
         <div style={{ marginTop: '30px' }}>
           <h1>About SOL</h1>
           <p className='subtext'>
