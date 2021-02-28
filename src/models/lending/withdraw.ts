@@ -1,24 +1,25 @@
 import {
   PublicKey,
-  SYSVAR_CLOCK_PUBKEY,
+  SystemProgram,
+  SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import { TOKEN_PROGRAM_ID, TENDERIZE_PROGRAM_ID } from '../../utils/ids';
+import { Tenderize } from '.';
+import { TOKEN_PROGRAM_ID, TENDERIZE_PROGRAM_ID, STAKE_POOL_ID, WITHDRAW_AUTHORITY_PDA, RESERVE_ADDRESS_PDA } from '../../utils/ids';
 import * as Layout from './../../utils/layout';
 import { LendingInstruction } from './lending';
 
+export interface WithdrawParams {
+  userTokenSource: PublicKey;
+  userSolTarget: PublicKey;
+  amount: number | BN;
+}
+
 export const withdrawInstruction = (
-  collateralAmount: number | BN,
-  from: PublicKey, // Collateral input SPL Token account. $authority can transfer $liquidity_amount
-  to: PublicKey, // Liquidity output SPL Token account,
-  reserveAccount: PublicKey,
-  collateralMint: PublicKey,
-  reserveSupply: PublicKey,
-  lendingMarket: PublicKey,
-  authority: PublicKey,
-  transferAuthority: PublicKey
+  params: WithdrawParams,
+  tenderize: Tenderize
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8('instruction'),
@@ -29,21 +30,20 @@ export const withdrawInstruction = (
   dataLayout.encode(
     {
       instruction: LendingInstruction.WithdrawReserveLiquidity,
-      collateralAmount: new BN(collateralAmount),
+      collateralAmount: new BN(params.amount),
     },
     data
   );
 
   const keys = [
-    { pubkey: from, isSigner: false, isWritable: true },
-    { pubkey: to, isSigner: false, isWritable: true },
-    { pubkey: reserveAccount, isSigner: false, isWritable: true },
-    { pubkey: collateralMint, isSigner: false, isWritable: true },
-    { pubkey: reserveSupply, isSigner: false, isWritable: true },
-    { pubkey: lendingMarket, isSigner: false, isWritable: false },
-    { pubkey: authority, isSigner: false, isWritable: false },
-    { pubkey: transferAuthority, isSigner: true, isWritable: false },
-    { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+    { pubkey: STAKE_POOL_ID, isSigner: false, isWritable: true },
+    { pubkey: WITHDRAW_AUTHORITY_PDA, isSigner: false, isWritable: false, },
+    { pubkey: RESERVE_ADDRESS_PDA, isSigner: false, isWritable: true, },
+    { pubkey: params.userTokenSource, isSigner: false, isWritable: true },
+    { pubkey: tenderize.poolMint, isSigner: false, isWritable: true },
+    { pubkey: params.userSolTarget, isSigner: false, isWritable: true },
+    { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
   return new TransactionInstruction({

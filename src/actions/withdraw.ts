@@ -1,27 +1,31 @@
 import {
   Account,
   Connection,
-  PublicKey,
   TransactionInstruction,
 } from '@solana/web3.js';
 import { AccountLayout } from '@solana/spl-token';
 import { sendTransaction } from '../contexts/connection';
 import { Tenderize, withdrawInstruction } from '../models/lending';
-import { TENDERIZE_PROGRAM_ID } from '../utils/ids';
+import { RESERVE_ADDRESS_PDA, WITHDRAW_AUTHORITY_PDA } from '../utils/ids';
 import { notify } from '../utils/notifications';
-import { findOrCreateAccountByMint } from './account';
 import { approve, TokenAccount } from '../models';
+import { WalletAdapter } from '../contexts/wallet';
 
 export const withdraw = async (
   from: TokenAccount, // CollateralAccount
   amountLamports: number, // in collateral token (lamports)
-  reserve: Tenderize,
-  reserveAddress: PublicKey,
   connection: Connection,
-  wallet: any
+  wallet: WalletAdapter,
+  tenderize: Tenderize
 ) => {
   if (!wallet.publicKey) {
     throw new Error('Wallet is not connected');
+  }
+
+  const reserveInfo = await connection.getAccountInfo(RESERVE_ADDRESS_PDA);
+  const minReserveBalance = await connection.getMinimumBalanceForRentExemption(0) + await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+  if (!reserveInfo || reserveInfo.lamports < minReserveBalance + amountLamports) {
+    throw Error("Not enough funds");
   }
 
   notify({
@@ -35,52 +39,32 @@ export const withdraw = async (
   const instructions: TransactionInstruction[] = [];
   const cleanupInstructions: TransactionInstruction[] = [];
 
-  const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
-    AccountLayout.span
-  );
-
-  const [authority] = await PublicKey.findProgramAddress(
-    [reserve.poolMint.toBuffer()],
-    TENDERIZE_PROGRAM_ID
-  );
-
   const fromAccount = from.pubkey;
 
   // create approval for transfer transactions
-  const transferAuthority = approve(
+  approve(
     instructions,
     cleanupInstructions,
     fromAccount,
     wallet.publicKey,
-    amountLamports
+    amountLamports,
+    true,
+    WITHDRAW_AUTHORITY_PDA
   );
-
-  signers.push(transferAuthority);
 
   // get destination account
-  const toAccount = await findOrCreateAccountByMint(
-    wallet.publicKey,
-    wallet.publicKey,
-    instructions,
-    cleanupInstructions,
-    accountRentExempt,
-    reserve.poolMint,
-    signers
-  );
+  const toAccount = wallet.publicKey;
 
   // instructions.push(accrueInterestInstruction(reserveAddress));
 
   instructions.push(
     withdrawInstruction(
-      amountLamports,
-      fromAccount,
-      toAccount,
-      reserveAddress,
-      reserve.poolMint,
-      reserve.tokenProgram,
-      reserve.poolMint,
-      authority,
-      transferAuthority.publicKey
+      {
+        userTokenSource: fromAccount,
+        userSolTarget: toAccount,
+        amount: amountLamports
+      },
+      tenderize
     )
   );
 
@@ -94,11 +78,12 @@ export const withdraw = async (
     );
 
     notify({
-      message: 'Funds deposited.',
+      message: 'Funds withdrawn.',
       type: 'success',
       description: `Transaction - ${tx}`,
     });
-  } catch {
+  } catch (e) {
+    console.log(e);
     // TODO:
   }
 };
