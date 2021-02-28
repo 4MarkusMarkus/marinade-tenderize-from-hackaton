@@ -14,7 +14,7 @@ import {
   TENDERIZED_SOL_MINT_ID,
   TEMP_ACCOUNT_PDA,
   RESERVE_ADDRESS_PDA,
-  WITHDRAW_ADDRESS_PDA,
+  WITHDRAW_AUTHORITY_PDA,
   WRAPPED_SOL_MINT,
 } from '../../utils/ids';
 import * as Layout from './../../utils/layout';
