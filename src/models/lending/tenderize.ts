@@ -52,6 +52,9 @@ export const TenderizeParser = (
   pubKey: PublicKey,
   info: AccountInfo<Buffer>
 ) => {
+  if (!info || info.data.length === 0) {
+    return undefined;
+  }
   const buffer = Buffer.from(info.data);
   const data = TenderizeLayout.decode(buffer) as Tenderize;
 
