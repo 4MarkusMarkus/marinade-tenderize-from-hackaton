@@ -7,6 +7,7 @@ import { Settings } from "../Settings";
 import { LABELS } from "../../constants";
 import { ConnectButton } from "../ConnectButton";
 import { useTenderize } from "../../contexts/tenderize";
+import { formatNumber } from "../../utils/utils";
 
 export const AppBar = (props: { left?: JSX.Element; right?: JSX.Element }) => {
   const { connected } = useWallet();
@@ -40,7 +41,7 @@ export const AppBar = (props: { left?: JSX.Element; right?: JSX.Element }) => {
         />
       </Popover>
       {props.right}
-      <span>tSOL price: {price}</span>
+      <span>tSOL price: {formatNumber.format(price)}</span>
     </div>
   );
 
