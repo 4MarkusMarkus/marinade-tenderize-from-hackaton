@@ -53,23 +53,19 @@ export const depositInstruction = (
   reserveSupply: PublicKey,
   collateralMint: PublicKey*/
 ): TransactionInstruction => {
-  // const dataLayout = BufferLayout.struct([
-  //   BufferLayout.u8('instruction'),
-  //   Layout.uint64('liquidityAmount'),
-  // ]);
+  const dataLayout = BufferLayout.struct([
+    BufferLayout.u8('instruction'),
+    Layout.uint64('liquidityAmount'),
+  ]);
 
-  // const data = Buffer.alloc(dataLayout.span);
-  // dataLayout.encode(
-  //   {
-  //     instruction: LendingInstruction.DepositReserveLiquidity,
-  //     liquidityAmount: new BN(liquidityAmount),
-  //   },
-  //   data
-  // );
-
-  const data = Buffer.alloc(1 + 8);
-  let p = data.writeUInt8(6, 0);
-  p = data.writeBigInt64LE(BigInt(params.amount), p);
+  const data = Buffer.alloc(dataLayout.span);
+  dataLayout.encode(
+    {
+      instruction: LendingInstruction.DepositReserveLiquidity,
+      liquidityAmount: new BN(params.amount),
+    },
+    data
+  );
 
   const keys = [
     { pubkey: STAKE_POOL_ID, isSigner: false, isWritable: true },
