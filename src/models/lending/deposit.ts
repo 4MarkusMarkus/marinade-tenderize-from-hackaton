@@ -5,7 +5,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import BN from 'bn.js';
-import * as BufferLayout from 'buffer-layout';
+// import * as BufferLayout from 'buffer-layout';
 import {
   TOKEN_PROGRAM_ID,
   TENDERIZE_PROGRAM_ID,
@@ -17,8 +17,8 @@ import {
   TEMP_ACCOUNT_PDA,
   WRAPPED_SOL_MINT,
 } from '../../utils/ids';
-import * as Layout from './../../utils/layout';
-import { LendingInstruction } from './lending';
+// import * as Layout from './../../utils/layout';
+// import { LendingInstruction } from './lending';
 // import { LendingReserve } from './reserve';
 
 /// Deposit liquidity into a reserve. The output is a collateral token representing ownership
@@ -68,6 +68,7 @@ export const depositInstruction = (
   // );
 
   const data = Buffer.alloc(1 + 8);
+  // eslint-disable-next-line
   let p = data.writeUInt8(6, 0);
   p = data.writeBigInt64LE(BigInt(params.amount), p);
 
