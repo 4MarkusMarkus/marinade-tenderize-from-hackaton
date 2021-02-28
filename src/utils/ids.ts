@@ -28,39 +28,51 @@ export const OWNER_FEE_ACCOUNT = new PublicKey( // TODO: read from account
   'GAw1CLxsG1YoHG6CG4iiVF6TXB9xLKawkTz1M3xEzxUs'
 );
 
-export let WITHDRAW_AUTHORITY_PDA: PublicKey;
-export let DEPOSIT_AUTHORITY_PDA: PublicKey;
-export let RESERVE_ADDRESS_PDA: PublicKey;
-export let TEMP_ACCOUNT_PDA: PublicKey;
+export const RESERVE_ADDRESS_PDA = new PublicKey( // TODO: read from account
+  'J5zPZnPwxxyV2vMSneQy4kasgteR1rHYEokfaa2G9DdQ'
+);
 
-const initConstants = async () => {
-  WITHDRAW_AUTHORITY_PDA = (
-    await PublicKey.findProgramAddress(
-      [STAKE_POOL_ID.toBuffer(), Buffer.from('withdraw')],
-      TENDERIZE_PROGRAM_ID
-    )
-  )[0];
-  DEPOSIT_AUTHORITY_PDA = (
-    await PublicKey.findProgramAddress(
-      [STAKE_POOL_ID.toBuffer(), Buffer.from('deposit')],
-      TENDERIZE_PROGRAM_ID
-    )
-  )[0];
-  RESERVE_ADDRESS_PDA = (
-    await PublicKey.findProgramAddress(
-      [STAKE_POOL_ID.toBuffer(), Buffer.from('reserve')],
-      TENDERIZE_PROGRAM_ID
-    )
-  )[0];
-  TEMP_ACCOUNT_PDA = (
-    await PublicKey.findProgramAddress(
-      [STAKE_POOL_ID.toBuffer(), Buffer.from('temp')],
-      TENDERIZE_PROGRAM_ID
-    )
-  )[0];
-};
+export const WITHDRAW_AUTHORITY_PDA = new PublicKey( // TODO: read from account
+  '5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg'
+);
 
-initConstants();
+export const TEMP_ACCOUNT_PDA = new PublicKey( // TODO: read from account
+  'GvHtq21JoJr243heSNXh29kWz6unGtCG6stbyKcYM3m1'
+);
+
+// export let WITHDRAW_AUTHORITY_PDA: PublicKey;
+// export let DEPOSIT_AUTHORITY_PDA: PublicKey;
+// export let RESERVE_ADDRESS_PDA: PublicKey;
+// export let TEMP_ACCOUNT_PDA: PublicKey;
+
+// const initConstants = async () => {
+//   WITHDRAW_AUTHORITY_PDA = (
+//     await PublicKey.findProgramAddress(
+//       [STAKE_POOL_ID.toBuffer(), Buffer.from('withdraw')],
+//       TENDERIZE_PROGRAM_ID
+//     )
+//   )[0];
+//   DEPOSIT_AUTHORITY_PDA = (
+//     await PublicKey.findProgramAddress(
+//       [STAKE_POOL_ID.toBuffer(), Buffer.from('deposit')],
+//       TENDERIZE_PROGRAM_ID
+//     )
+//   )[0];
+//   RESERVE_ADDRESS_PDA = (
+//     await PublicKey.findProgramAddress(
+//       [STAKE_POOL_ID.toBuffer(), Buffer.from('reserve')],
+//       TENDERIZE_PROGRAM_ID
+//     )
+//   )[0];
+//   TEMP_ACCOUNT_PDA = (
+//     await PublicKey.findProgramAddress(
+//       [STAKE_POOL_ID.toBuffer(), Buffer.from('temp')],
+//       TENDERIZE_PROGRAM_ID
+//     )
+//   )[0];
+// };
+
+// initConstants();
 
 export const PROGRAM_IDS = [
   {
