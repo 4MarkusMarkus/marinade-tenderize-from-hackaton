@@ -53,7 +53,7 @@ export const deposit = async (
   );
 
   // create approval for transfer transactions
-  const transferAuthority = approve(
+  approve(
     instructions,
     cleanupInstructions,
     fromAccount,
@@ -62,8 +62,6 @@ export const deposit = async (
     true,
     WITHDRAW_AUTHORITY_PDA
   );
-
-  signers.push(transferAuthority);
 
   let toAccount = await findOrCreateAccountByMint(
     wallet.publicKey,
