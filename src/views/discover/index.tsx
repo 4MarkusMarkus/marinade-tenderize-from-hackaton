@@ -22,6 +22,7 @@ import { Line } from 'react-chartjs-2';
 //   WalletProvider,
 // } from '../../contexts/wallet';
 import { DepositInput } from '../../components/DepositInput';
+import { WithdrawInput } from '../../components/WithdrawInput';
 // import { LendingReserve } from '../../models/lending';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
@@ -291,15 +292,8 @@ export const DiscoverView = () => {
                 <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
-              <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
-              <span> SOL</span>
-              <br />
-              <Button
-                className='tenderButton tenderButtonShade'
-                style={{ marginTop: '10px' }}
-              >
-                Unstake
-              </Button>
+              <WithdrawInput />
+
             </TabPane>
           </Tabs>
         </Card>
