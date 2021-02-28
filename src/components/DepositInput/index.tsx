@@ -15,23 +15,24 @@ import { deposit } from '../../actions/deposit';
 import { PublicKey } from '@solana/web3.js';
 import { ActionConfirmation } from './../ActionConfirmation';
 import { LABELS, marks } from '../../constants';
+import { TENDERIZED_SOL_MINT_ID, WRAPPED_SOL_MINT } from '../../utils/ids';
 
 export const DepositInput = (props: {
   className?: string;
-  reserve: LendingReserve;
-  address: PublicKey;
 }) => {
   const connection = useConnection();
   const { wallet } = useWallet();
   const [pendingTx, setPendingTx] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  /*
   const reserve = props.reserve;
   const address = props.address;
+  */
 
-  const name = useTokenName(reserve?.poolMint);
+  const name = useTokenName(WRAPPED_SOL_MINT);
   const { accounts: fromAccounts, balance, balanceLamports } = useUserBalance(
-    reserve?.poolMint
+    WRAPPED_SOL_MINT
   );
 
   const convert = useCallback(
@@ -57,8 +58,6 @@ export const DepositInput = (props: {
           type === InputType.Percent
             ? (pct * balanceLamports) / 100
             : Math.ceil(balanceLamports * (parseFloat(value) / balance)),
-          reserve,
-          address,
           connection,
           wallet!
         );
@@ -80,9 +79,7 @@ export const DepositInput = (props: {
     value,
     pct,
     type,
-    reserve,
     fromAccounts,
-    address,
   ]);
 
   const bodyStyle: React.CSSProperties = {
@@ -107,7 +104,7 @@ export const DepositInput = (props: {
           >
             <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
             <div className='token-input'>
-              <TokenIcon mintAddress={reserve?.poolMint} />
+              <TokenIcon mintAddress={WRAPPED_SOL_MINT} />
               <NumericInput
                 value={value}
                 onChange={setValue}

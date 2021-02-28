@@ -15,12 +15,11 @@ import {
 } from './account';
 import { approve, TokenAccount } from '../models';
 import { WalletAdapter } from '../contexts/wallet';
+import { TENDERIZED_SOL_MINT_ID } from '../utils/ids';
 
 export const deposit = async (
   from: TokenAccount,
   amountLamports: number,
-  reserve: LendingReserve,
-  reserveAddress: PublicKey,
   connection: Connection,
   wallet: WalletAdapter
 ) => {
@@ -33,8 +32,6 @@ export const deposit = async (
     description: 'Please review transactions to approve.',
     type: 'warn',
   });
-
-  const isInitialized = true; // TODO: finish reserve init
 
   // user from account
   const signers: Account[] = [];
@@ -70,68 +67,36 @@ export const deposit = async (
 
   signers.push(transferAuthority);
 
-  let toAccount: PublicKey;
-  if (isInitialized) {
-    // get destination account
-    toAccount = await findOrCreateAccountByMint(
-      wallet.publicKey,
-      wallet.publicKey,
-      instructions,
-      cleanupInstructions,
-      accountRentExempt,
-      reserve.poolMint,
-      signers
-    );
-  } else {
-    toAccount = createUninitializedAccount(
-      instructions,
-      wallet.publicKey,
-      accountRentExempt,
-      signers
-    );
-  }
+  let toAccount = await findOrCreateAccountByMint(
+    wallet.publicKey,
+    wallet.publicKey,
+    instructions,
+    cleanupInstructions,
+    accountRentExempt,
+    TENDERIZED_SOL_MINT_ID,
+    signers
+  );
 
-  if (isInitialized) {
-    // instructions.push(accrueInterestInstruction(reserveAddress));
 
-    // deposit
-    instructions.push(
-      depositInstruction(
-        {
-          amount: amountLamports,
-          userSource: fromAccount,
-          userToken: toAccount
-        }
-        /*reserve.lendingMarket,
-        authority,
-        transferAuthority.publicKey,
-        reserveAddress,
-        reserve.liquiditySupply,
-        reserve.collateralMint*/
-      )
-    );
-  } else {
-    /* no initialisation in frontend
-    // TODO: finish reserve init
-    const MAX_UTILIZATION_RATE = 80;
-    instructions.push(
-      initReserveInstruction(
-        amountLamports,
-        MAX_UTILIZATION_RATE,
-        fromAccount,
-        toAccount,
-        reserveAddress,
-        reserve.liquidityMint,
-        reserve.liquiditySupply,
-        reserve.collateralMint,
-        reserve.collateralSupply,
-        reserve.lendingMarket,
-        authority,
-        transferAuthority.publicKey,
-        reserve.dexMarket
-      )
-    );*/
-  }
+  // instructions.push(accrueInterestInstruction(reserveAddress));
+
+  // deposit
+  instructions.push(
+    depositInstruction(
+      {
+        amount: amountLamports,
+        userSource: fromAccount,
+        userToken: toAccount
+      }
+      /*reserve.lendingMarket,
+      authority,
+      transferAuthority.publicKey,
+      reserveAddress,
+      reserve.liquiditySupply,
+      reserve.collateralMint*/
+    )
+  );
+
 
   try {
     let tx = await sendTransaction(
@@ -147,8 +112,8 @@ export const deposit = async (
       type: 'success',
       description: `Transaction - ${tx}`,
     });
-  } catch {
+  } catch (e) {
     // TODO:
-    throw new Error();
+    throw e;
   }
 };

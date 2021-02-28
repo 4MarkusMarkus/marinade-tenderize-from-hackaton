@@ -21,6 +21,7 @@ import {
   WalletAdapter,
   WalletProvider,
 } from '../../contexts/wallet';
+import { DepositInput } from '../../components/DepositInput';
 // import { LendingReserve } from '../../models/lending';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
@@ -69,9 +70,9 @@ export const DiscoverView = () => {
 
     let tx = await sendTransaction(
       connection,
-      wallet,
+      wallet!,
       [depositInstruction(params)],
-      [...signers]
+      []
     );
 
     notify({
@@ -192,23 +193,20 @@ export const DiscoverView = () => {
                 <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
-              {/* <DepositInput
-                className='card-fill'
-                reserve={reserve}
-                address={lendingReserve.pubkey}
-              /> */}
               <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
               <span> SOL</span>
               <br />
+              <DepositInput
+              />
               <Button
                 className='tenderButton tenderButtonShade'
                 style={{ marginTop: '10px' }}
-                onClick={() =>
-                  deposit({
+                onClick={() => alert("Not implemented")
+                  /*deposit({
                     userSource: account,
                     amount: 100000000000,
                     userToken: '',
-                  })
+                  })*/
                 }
               >
                 Stake
