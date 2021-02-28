@@ -11,7 +11,7 @@ import { AccountLayout } from '@solana/spl-token';
 import { ensureSplAccount, findOrCreateAccountByMint } from './account';
 import { approve, TokenAccount } from '../models';
 import { WalletAdapter } from '../contexts/wallet';
-import { TENDERIZED_SOL_MINT_ID } from '../utils/ids';
+import { TENDERIZED_SOL_MINT_ID, WITHDRAW_AUTHORITY_PDA } from '../utils/ids';
 
 export const deposit = async (
   from: TokenAccount,
@@ -58,7 +58,9 @@ export const deposit = async (
     cleanupInstructions,
     fromAccount,
     wallet.publicKey,
-    amountLamports
+    amountLamports,
+    true,
+    WITHDRAW_AUTHORITY_PDA
   );
 
   signers.push(transferAuthority);
