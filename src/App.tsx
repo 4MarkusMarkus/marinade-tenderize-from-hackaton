@@ -1,12 +1,12 @@
-import React, { useEffect } from "react";
-import "./App.less";
-import { Routes } from "./routes";
-import { initConstants } from "./utils/ids";
+import React from 'react';
+import './App.less';
+import { Routes } from './routes';
+// import { initConstants } from "./utils/ids";
 
 function App() {
-  useEffect(() => {
-    initConstants();
-  })
+  // useEffect(() => {
+  //   initConstants();
+  // })
   return <Routes />;
 }
 
