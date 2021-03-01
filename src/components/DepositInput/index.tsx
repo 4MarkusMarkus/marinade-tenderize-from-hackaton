@@ -16,6 +16,7 @@ import { deposit } from '../../actions/deposit';
 import { ActionConfirmation } from './../ActionConfirmation';
 import { LABELS, marks } from '../../constants';
 import { WRAPPED_SOL_MINT } from '../../utils/ids';
+import { ConnectButton } from '../ConnectButton';
 
 export const DepositInput = (props: { className?: string }) => {
   const connection = useConnection();
@@ -119,15 +120,23 @@ export const DepositInput = (props: { className?: string }) => {
           </div>
 
           <Slider marks={marks} value={pct} onChange={setPct} />
-
-          <Button
+          <ConnectButton
+            className='tenderButton tenderButtonShade'
             type='primary'
             onClick={onDeposit}
             loading={pendingTx}
             disabled={fromAccounts.length === 0}
           >
             {LABELS.DEPOSIT_ACTION}
-          </Button>
+          </ConnectButton>
+          {/* <Button
+            type='primary'
+            onClick={onDeposit}
+            loading={pendingTx}
+            disabled={fromAccounts.length === 0}
+          >
+            {LABELS.DEPOSIT_ACTION}
+          </Button> */}
         </div>
       )}
     </Card>

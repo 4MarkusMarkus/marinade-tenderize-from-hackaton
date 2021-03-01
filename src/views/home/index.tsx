@@ -1,12 +1,9 @@
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Col, Row, Card, Button } from 'antd';
-import React, { useEffect, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
-import { ConnectButton } from '../../components/ConnectButton';
-import { useNativeAccount } from '../../contexts/accounts';
+import React, { useEffect } from 'react';
+// import { ConnectButton } from '../../components/ConnectButton';
 import { useConnectionConfig } from '../../contexts/connection';
 import { useMarkets } from '../../contexts/market';
-import { formatNumber } from '../../utils/utils';
+import { Link } from 'react-router-dom';
 
 // const stakeHammer = require('../../img/stakeHammer.svg');
 const potionHero = require('../../img/potionHero.svg');
@@ -16,21 +13,18 @@ const polygonLogo = require('../../img/polygonDark.svg');
 const keepLogo = require('../../img/keep.svg');
 const hammer = require('../../img/hammer.svg');
 const meat = require('../../img/meat.svg');
+const ocean = require('../../img/ocean.svg');
+const farmer = require('../../img/farmer.svg');
+const stakeHammer = require('../../img/stakeHammer.svg');
 
 export const HomeView = () => {
   const { marketEmitter, midPriceInUSD } = useMarkets();
   const { tokenMap } = useConnectionConfig();
-  const { account } = useNativeAccount();
 
-  const balance = useMemo(
-    () => formatNumber.format((account?.lamports || 0) / LAMPORTS_PER_SOL),
-    [account]
-  );
-
-  let history = useHistory();
-  const handleClick = (to: string) => {
-    history.push(to);
-  };
+  // let history = useHistory();
+  // const handleClick = (to: string) => {
+  //   history.push(to);
+  // };
 
   useEffect(() => {
     const refreshTotal = () => {};
@@ -51,7 +45,8 @@ export const HomeView = () => {
       <Col
         span={24}
         style={{
-          marginTop: '90px',
+          marginTop: '70px',
+          marginBottom: '50px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -111,7 +106,7 @@ export const HomeView = () => {
               <h2 className='title' style={{ marginBottom: 0 }}>
                 10.2%
               </h2>
-              <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+              <h3 style={{ marginBottom: 0 }}>Rewards</h3>
               <h5>(projected APY)</h5>
             </div>
             <Button className='tenderButton tenderButtonShade' disabled>
@@ -143,19 +138,21 @@ export const HomeView = () => {
               <h2 className='title' style={{ marginBottom: 0 }}>
                 15.5%
               </h2>
-              <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+              <h3 style={{ marginBottom: 0 }}>Rewards</h3>
               <h5>(projected APY)</h5>
             </div>
-            <ConnectButton
+            {/* <ConnectButton
               className='tenderButton tenderButtonShade'
               onClick={() => handleClick('/discover')}
             >
               Stake
-            </ConnectButton>
+            </ConnectButton> */}
 
-            {/* <Link to="/discover">
-                <Button className="tenderButton tenderButtonShade">Stake</Button>
-              </Link> */}
+            <Link to='/discover' style={{ width: '100%' }}>
+              <Button className='tenderButton tenderButtonShade'>
+                Discover
+              </Button>
+            </Link>
           </div>
         </Card>
         <Card className='card' style={{ width: '30%' }}>
@@ -182,7 +179,7 @@ export const HomeView = () => {
               <h2 className='title' style={{ marginBottom: 0 }}>
                 9.8%
               </h2>
-              <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+              <h3 style={{ marginBottom: 0 }}>Rewards</h3>
               <h5>(projected APY)</h5>
             </div>
             <Button className='tenderButton tenderButtonShade' disabled>
@@ -195,40 +192,90 @@ export const HomeView = () => {
         <div style={{ marginTop: '100px', marginBottom: '70px' }}>
           <img style={{ maxWidth: '100%' }} src={potionHero} alt='potionHero' />
         </div>
-        <p>{balance}</p>
+        {/* <p>{balance}</p> */}
       </Col>
       <Col span={10}>
         <p className='subtext'> Tenderize is a liquid staking protocol. </p>
         <p className='subtext'>
           {' '}
           It allows you to enjoy your farm-fresh, tender staking returns without
-          the wait of an unbonding period (1-3 months in the case of Keep).
+          the wait of an unbonding period.
         </p>
       </Col>
       <Col span={24}>
-        <div style={{ height: '70vh', marginBottom: '30px' }}>
+        <div style={{ height: '65vh', marginBottom: '30px' }}>
           <div className='table card'>
-            <div>
-              <span className='subtext table-left'>Step 1</span>
-              <p className='subtext'>
-                Order off of our select, stake menu. Deposit your stake and let
-                the tenderizing begin.
-              </p>
+            <h1 style={{ fontWeight: 600, marginTop: '20px' }}>
+              Why Tenderize?
+            </h1>
+            <div className='table'>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center', width: '20%' }}
+                >
+                  <img width='50' src={ocean} alt='ocean icon' />
+                </span>
+                <p className='subtext'>
+                  Liquify your stakes with tenderSol tokens.
+                </p>
+              </div>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center' }}
+                >
+                  <img
+                    width='70'
+                    src={stakeHammer}
+                    alt='stake hammer icon'
+                  ></img>
+                </span>
+                <p className='subtext'>
+                  Make your staking process easy and tender.
+                </p>
+              </div>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center' }}
+                >
+                  <img width='50' src={farmer} alt='farmer icon' />
+                </span>
+                <p className='subtext'>Maximize your yield! No cool downs!</p>
+              </div>
             </div>
-            <div>
-              <span className='subtext table-left'>Step 2</span>
-              <p className='regulartext'>
-                Receive a freshly minted, tender token that represents your
-                initial stake and any earned rewards.
-              </p>
-            </div>
-            <div>
-              <span className='subtext table-left'>Step 3</span>
-              <p className='regulartext'>
-                With your new tender token, you can skip the wait of your
-                stake’s unbonding period. Go utilize, liquidize, and
-                collateralize...all while you tenderize.
-              </p>
+          </div>
+        </div>
+      </Col>
+      <Col span={24}>
+        <div style={{ height: '65vh', marginBottom: '30px' }}>
+          <div className='table card'>
+            <h1 style={{ fontWeight: 600, marginTop: '20px' }}>
+              How does it work?
+            </h1>
+            <div className='table'>
+              <div>
+                <span className='subtext table-left'>Step 1</span>
+                <p className='subtext'>
+                  Order off of our select, stake menu. Deposit your stake and
+                  let the tenderizing begin.
+                </p>
+              </div>
+              <div>
+                <span className='subtext table-left'>Step 2</span>
+                <p className='subtext'>
+                  Sit down, relax and start receiving staking rewards. As your
+                  stakes tenderize, the value of your tendertokens go up.
+                </p>
+              </div>
+              <div>
+                <span className='subtext table-left'>Step 3</span>
+                <p className='subtext'>
+                  Skip the waiting periods with your newly tenderized stake. Go
+                  utilize, liquidize, and collateralize, all while tenderize!
+                </p>
+              </div>
             </div>
           </div>
         </div>

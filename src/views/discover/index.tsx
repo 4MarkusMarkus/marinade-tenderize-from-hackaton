@@ -4,7 +4,7 @@ import React from 'react';
 // import { Link } from 'react-router-dom';
 
 // import { DepositInput } from '../../components/DepositInput';
-import { Button, Card, Tabs, InputNumber } from 'antd';
+import { Card, Tabs } from 'antd';
 import { Line } from 'react-chartjs-2';
 // import { sendTransaction, useConnection } from '../../contexts/connection';
 // import { useNativeAccount } from '../../contexts/accounts';
@@ -26,40 +26,119 @@ import { WithdrawInput } from '../../components/WithdrawInput';
 // import { LendingReserve } from '../../models/lending';
 
 const solanaLogo = require('../../img/solanaLogo.svg');
+const tenderSol = require('../../img/tenderSol.svg');
 const { TabPane } = Tabs;
 
 export const DiscoverView = () => {
   // const connection = useConnection();
 
   // const { wallet } = useWallet();
-
+  const dateData = [
+    `Jan-21`,
+    `Feb-21`,
+    `Mar-21`,
+    `Apr-21`,
+    `May-21`,
+    `Jun-21`,
+    `Jul-21`,
+    `Aug-21`,
+    `Sep-21`,
+    `Oct -21`,
+    `Nov-21`,
+    `Dec-21`,
+    `Jan-22`,
+    `Feb-22`,
+    `Mar-22`,
+    `Apr-22`,
+    `May-22`,
+    `Jun-22`,
+    `Jul-22`,
+    `Aug-22`,
+    `Sep-22`,
+    `Oct -22`,
+    `Nov-22`,
+    `Dec-22`,
+  ];
+  const data1 = [
+    1342,
+    1344.05,
+    1309.84,
+    1428.93,
+    1399.34,
+    1667.88,
+    1825.42,
+    2148.62,
+    2231.59,
+    2319.66,
+    2238.63,
+    2511.29,
+    2929.99,
+    2702.93,
+    3237.3,
+    3412.23,
+    3160.59,
+    3280,
+    3488.19,
+    3391.12,
+    3406.38,
+    4021.81,
+    4097.73,
+    5044.31,
+  ];
+  const data2 = [
+    1342,
+    1301.74,
+    1236.66,
+    1310.86,
+    1245.32,
+    1444.58,
+    1531.26,
+    1745.64,
+    1763.1,
+    1780.74,
+    1673.9,
+    1824.56,
+    2061.76,
+    1855.59,
+    2152.49,
+    2217.07,
+    1995.37,
+    2015.33,
+    2075.79,
+    1972.01,
+    1932.57,
+    2222.46,
+    2200.24,
+    2640.29,
+  ];
+  const data3 = [
+    1,
+    1.03,
+    1.05,
+    1.09,
+    1.12,
+    1.15,
+    1.17,
+    1.21,
+    1.24,
+    1.27,
+    1.3,
+    1.34,
+    1.39,
+    1.43,
+    1.47,
+    1.51,
+    1.55,
+    1.59,
+    1.65,
+    1.7,
+    1.75,
+    1.81,
+    1.86,
+    1.91,
+  ];
   const state = {
-    labels: [
-      `Jan-21`,
-      `Feb-21`,
-      `Mar-21`,
-      `Apr-21`,
-      `May-21`,
-      `Jun-21`,
-      `Jul-21`,
-      `Aug-21`,
-      `Sep-21`,
-      `Oct -21`,
-      `Nov-21`,
-      `Dec-21`,
-      `Jan-22`,
-      `Feb-22`,
-      `Mar-22`,
-      `Apr-22`,
-      `May-22`,
-      `Jun-22`,
-      `Jul-22`,
-      `Aug-22`,
-      `Sep-22`,
-      `Oct -22`,
-      `Nov-22`,
-      `Dec-22`,
-    ],
+    labels: dateData,
 
     datasets: [
       {
@@ -67,32 +146,7 @@ export const DiscoverView = () => {
         backgroundColor: 'orange',
         borderColor: 'orange',
         borderWidth: 2,
-        data: [
-          1342,
-          1344.05,
-          1309.84,
-          1428.93,
-          1399.34,
-          1667.88,
-          1825.42,
-          2148.62,
-          2231.59,
-          2319.66,
-          2238.63,
-          2511.29,
-          2929.99,
-          2702.93,
-          3237.3,
-          3412.23,
-          3160.59,
-          3280,
-          3488.19,
-          3391.12,
-          3406.38,
-          4021.81,
-          4097.73,
-          5044.31,
-        ],
+        data: data1,
         fill: false,
       },
       {
@@ -100,37 +154,25 @@ export const DiscoverView = () => {
         backgroundColor: 'rgba(75,192,192,1)',
         borderColor: 'rgba(75,192,192,1)',
         borderWidth: 2,
-        data: [
-          1342,
-          1301.74,
-          1236.66,
-          1310.86,
-          1245.32,
-          1444.58,
-          1531.26,
-          1745.64,
-          1763.1,
-          1780.74,
-          1673.9,
-          1824.56,
-          2061.76,
-          1855.59,
-          2152.49,
-          2217.07,
-          1995.37,
-          2015.33,
-          2075.79,
-          1972.01,
-          1932.57,
-          2222.46,
-          2200.24,
-          2640.29,
-        ],
+        data: data2,
         fill: false,
       },
     ],
   };
 
+  const state2 = {
+    labels: dateData,
+    datasets: [
+      {
+        label: 'SOL',
+        backgroundColor: 'rgba(75,192,192,1)',
+        borderColor: 'rgba(75,192,192,1)',
+        borderWidth: 2,
+        data: data3,
+        fill: false,
+      },
+    ],
+  };
   // const { id } = useParams<{ id: string }>();
   // const lendingReserve = useLendingReserve('SOL');
   // console.log('Reserve:', lendingReserve);
@@ -189,14 +231,16 @@ export const DiscoverView = () => {
       <div
         style={{
           width: '60%',
-          marginRight: '30px',
+          marginRight: '40px',
           textAlign: 'left',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
         <div>
-          <h1>Projected tSOL price when staking 100 SOL with Tenderize</h1>
+          <h1 style={{ fontWeight: 600 }}>
+            Projected rewards in tenderSOL (tSOL) when staking 100 SOL
+          </h1>
           <h3>(compared to HODL SOL)</h3>
           <Card className='card'>
             <Line
@@ -220,20 +264,57 @@ export const DiscoverView = () => {
               }}
             />
           </Card>
+          <h1 style={{ fontWeight: 600, marginTop: '30px' }}>
+            Price of tSOL/SOL pair
+          </h1>
+          <Card className='card'>
+            <Line
+              data={state2}
+              options={{
+                legend: {
+                  display: false,
+                },
+              }}
+            />
+          </Card>
         </div>
 
         <div style={{ marginTop: '30px' }}>
-          <h1>About SOL</h1>
-          <p className='subtext'>
-            Solana is a fast, secure, and censorship resistant blockchain
-            providing the open infrastructure required for global adoption.
+          <h1 style={{ fontWeight: 600 }}>What is tenderSol?</h1>
+          <p className='regulartext'>
+            TenderSol is a value accruing staking derivative token, which allows
+            you to stake or unstake without any no bonding and unbonding period!
+          </p>
+          <p className='regulartext'>
+            Simply put, you can stake yours SOL tokens easily and maximize your
+            rewards. You can also trade your tenderSols, use them as a
+            collateral or just keep them under the pillow!
+          </p>
+          <p className='regulartext'>
+            Our main focus is to make staking more efficient and easy for Solana
+            community. Having a tenderSol token that represents your staking
+            position you to use it again, for example as a collateral in other
+            protocols.
+          </p>
+          <p className='regulartext'>
+            Find out more about Solana{' '}
+            <a
+              href='https://solana.com/'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='regulartext'
+              style={{ color: '#51C0BF' }}
+            >
+              here
+            </a>
+            !
           </p>
         </div>
       </div>
 
       <div
         className='card'
-        style={{ height: '450px', width: '30%', position: 'sticky', top: 0 }}
+        style={{ height: '580px', width: '30%', position: 'sticky', top: 0 }}
       >
         <Card className='card' style={{ width: '100%', height: '100%' }}>
           <Tabs defaultActiveKey='1' centered={true}>
@@ -245,55 +326,55 @@ export const DiscoverView = () => {
                   style={{ maxWidth: '30%' }}
                 />
                 <h2 className='subtext' style={{ marginTop: '5px' }}>
-                  SOLANA
+                  SOL Token
                 </h2>
               </div>
               <div style={{ marginTop: '5px', marginBottom: '5px' }}>
                 <h2 className='title' style={{ marginBottom: 0 }}>
                   15.5%
                 </h2>
-                <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+                <h3 style={{ marginBottom: 0 }}>Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
-              <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
+              {/* <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
               <span> SOL</span>
-              <br />
+              <br /> */}
               <DepositInput />
-              <Button
+              {/* <Button
                 className='tenderButton tenderButtonShade'
                 style={{ marginTop: '10px' }}
                 onClick={
                   () => alert('Not implemented')
-                  /*deposit({
+                  deposit({
                     userSource: account,
                     amount: 100000000000,
                     userToken: '',
-                  })*/
+                  })
                 }
               >
                 Stake
-              </Button>
+              </Button> */}
             </TabPane>
             <TabPane tab='Unstake' key='2'>
               <div>
                 <img
-                  src={solanaLogo}
-                  alt='solana logo'
+                  src={tenderSol}
+                  alt='tender solana logo'
+                  width='100'
                   style={{ maxWidth: '30%' }}
                 />
                 <h2 className='subtext' style={{ marginTop: '5px' }}>
-                  SOLANA
+                  tSOL Token
                 </h2>
               </div>
               <div style={{ marginTop: '5px', marginBottom: '5px' }}>
                 <h2 className='title' style={{ marginBottom: 0 }}>
                   15.5%
                 </h2>
-                <h3 style={{ marginBottom: 0 }}>Vault Rewards</h3>
+                <h3 style={{ marginBottom: 0 }}>Rewards</h3>
                 <h5>(projected APY)</h5>
               </div>
               <WithdrawInput />
-
             </TabPane>
           </Tabs>
         </Card>
