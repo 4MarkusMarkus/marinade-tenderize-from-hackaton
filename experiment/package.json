@@ -11,6 +11,8 @@
   "license": "MIT",
   "scripts": {
     "start": "ts-node main.ts",
+    "reserve:del": "ts-node tadm.ts del --amount 5",
+    "vadd": "ts-node tadm.ts vadd",
     "tadm": "ts-node tadm.ts",
     "prepare:env": "spl-token create-token ../keys/tSOL_token.json && spl-token authorize Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm mint 5es37KhF5VKHtSPXNDzwPNMSndizyNFvHzeFwzEKW3vg && spl-token create-account Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm ../keys/owners_fee.json && spl-token create-account Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm ../keys/user_tokens.json && spl-token create-account Do41x7Uza6cQeJ2VhVyJU6QhuRMLxTrLJhpL8MSNFpZm ../keys/credit_reserve.json"
   },

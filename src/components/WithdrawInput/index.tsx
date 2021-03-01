@@ -165,7 +165,7 @@ export const WithdrawInput = (props: { className?: string }) => {
               : LABELS.GET_IN_LINE_ACTION}
           </ConnectButton>
           {isReserveDepleted(amount) && (
-            <div>
+            <div style={{ marginTop: '8px' }}>
               Our reserve pool for instant withdrawals has not enough funds for
               now, but we will send you your tenderized stake back shortly, in
               the meantime, you still get rewards from staking.
