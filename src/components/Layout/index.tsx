@@ -13,7 +13,7 @@ export const AppLayout = React.memo((props: any) => {
   return (
     <div className="App wormhole-bg">
       
-      <Layout title={LABELS.APP_TITLE}>
+      <Layout>
       <div className="background"></div>
       <div className="bg-container">
         <div className="bg-inner"></div>

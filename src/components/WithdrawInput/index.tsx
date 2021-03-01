@@ -74,7 +74,7 @@ export const WithdrawInput = (props: { className?: string }) => {
               justifyContent: 'space-around',
             }}
           >
-            <div className='deposit-input-title'>{LABELS.DEPOSIT_QUESTION}</div>
+            <div className='deposit-input-title'>{LABELS.WITHDRAW_QUESTION}</div>
             <div className='token-input'>
               <TokenIcon mintAddress={WRAPPED_SOL_MINT} />
               <NumericInput
