@@ -66,17 +66,17 @@ All staking rewards are automatically reinvested, thus we save gas cost and time
 
 Alice deposits solana token into the system and gets back tenderSolana
 
-1.       Solana Token is transferred to Manager program
+1. Solana Token is transferred to Manager program
 
-2.       Based on current shareprice of tenderSolana the appropriate amount of tenderSols are minted and transferred to Alice
+2. Based on current shareprice of tenderSolana the appropriate amount of tenderSols are minted and transferred to Alice
 
-3.       The original token is kept as a reserve in Manager program main account. At the end of the epoch function delageteStake() is called, this function does following:
-
-
-        1.       Pays out LPs who wanted to withdraw their stake in previous epoch, but weren’t able to (owed[])
+3. The original token is kept as a reserve in Manager program main account. At the end of the epoch function delageteStake() is called, this function does following:
 
 
-        2.       The rest is staked, in our case tenderized 😉. Manager sends rest minus 10% (reserve to pay out LPs) to staking pools.
+    1. Pays out LPs who wanted to withdraw their stake in previous epoch, but weren’t able to (owed[])
+
+
+    2. The rest is staked, in our case tenderized 😉. Manager sends rest minus 10% (reserve to pay out LPs) to staking pools.
 
 Things to observe:
 
@@ -116,6 +116,15 @@ If it happens that there is a time where change in deposits in negative for coup
 Our vision is to make staking stupid simple, thus leveling the playing field for the everyday user and give them the benefits of blockchain OGs 😎.
 We aim to serve users first, hence being chain neutral, offering coins based on what people desire. 
 We believe in the decentralized Web3 vision, therefore our main principles is keep our solution trust minimized and validator agnostic.
+
+## Want to know more?
+
+You can learn more about how the system works in our DOCs folder.
+There you can find:
+
+- Quick run of what we are trying to achieve in our [**presentation**](https://docs.google.com/presentation/d/1bxq5OFFLnhV04XF_nPiQVW-V7kMjSFducbtnAa89CZM/edit?usp=sharing)
+- System overview in this [**document**](https://docs.google.com/document/d/1U-Hq9P6M7Epuh3WJ-dXEb6PXd-GBIGlgEodyjIEStVc/edit?usp=sharing)
+- Overview of our solution in this [**schema**](https://github.com/Tenderize/Tenderize-on-solana/blob/main/docs/Tenderize.me%20-%20Solana%20program%20schemaF.png)
 
 
 
