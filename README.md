@@ -124,7 +124,7 @@ There you can find:
 
 - Quick run of what we are trying to achieve in our [**presentation**](https://docs.google.com/presentation/d/1bxq5OFFLnhV04XF_nPiQVW-V7kMjSFducbtnAa89CZM/edit?usp=sharing)
 - System overview in this [**document**](https://docs.google.com/document/d/1U-Hq9P6M7Epuh3WJ-dXEb6PXd-GBIGlgEodyjIEStVc/edit?usp=sharing)
-- Overview of our solution in this [**schema**](https://github.com/Tenderize/Tenderize-on-solana/blob/main/docs/Tenderize.me%20-%20Solana%20program%20schemaF.png)
+- Overview of our solution in this [**schema**](https://github.com/Tenderize/Tenderize-on-solana/blob/main/docs/Tenderize.me-schemaF.png)
 
 
 
