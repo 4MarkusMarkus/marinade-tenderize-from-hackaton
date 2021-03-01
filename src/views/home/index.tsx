@@ -1,12 +1,8 @@
-import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { Col, Row, Card, Button } from 'antd';
-import React, { useEffect, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
-import { ConnectButton } from '../../components/ConnectButton';
-import { useNativeAccount } from '../../contexts/accounts';
+import React, { useEffect } from 'react';
+// import { ConnectButton } from '../../components/ConnectButton';
 import { useConnectionConfig } from '../../contexts/connection';
 import { useMarkets } from '../../contexts/market';
-import { formatNumber } from '../../utils/utils';
 import { Link } from 'react-router-dom';
 
 // const stakeHammer = require('../../img/stakeHammer.svg');
@@ -18,23 +14,17 @@ const keepLogo = require('../../img/keep.svg');
 const hammer = require('../../img/hammer.svg');
 const meat = require('../../img/meat.svg');
 const ocean = require('../../img/ocean.svg');
-const farmer = require("../../img/farmer.svg")
-const stakeHammer = require("../../img/stakeHammer.svg");
+const farmer = require('../../img/farmer.svg');
+const stakeHammer = require('../../img/stakeHammer.svg');
 
 export const HomeView = () => {
   const { marketEmitter, midPriceInUSD } = useMarkets();
   const { tokenMap } = useConnectionConfig();
-  const { account } = useNativeAccount();
 
-  const balance = useMemo(
-    () => formatNumber.format((account?.lamports || 0) / LAMPORTS_PER_SOL),
-    [account]
-  );
-
-  let history = useHistory();
-  const handleClick = (to: string) => {
-    history.push(to);
-  };
+  // let history = useHistory();
+  // const handleClick = (to: string) => {
+  //   history.push(to);
+  // };
 
   useEffect(() => {
     const refreshTotal = () => {};
@@ -56,7 +46,7 @@ export const HomeView = () => {
         span={24}
         style={{
           marginTop: '70px',
-          marginBottom:'50px',
+          marginBottom: '50px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -158,9 +148,10 @@ export const HomeView = () => {
               Stake
             </ConnectButton> */}
 
-            <Link to="/discover" style={{width:'100%'}}>
-                <Button className="tenderButton tenderButtonShade">
-                Discover</Button>
+            <Link to='/discover' style={{ width: '100%' }}>
+              <Button className='tenderButton tenderButtonShade'>
+                Discover
+              </Button>
             </Link>
           </div>
         </Card>
@@ -214,55 +205,79 @@ export const HomeView = () => {
       <Col span={24}>
         <div style={{ height: '65vh', marginBottom: '30px' }}>
           <div className='table card'>
-            <h1 style={{fontWeight:600, marginTop: '20px'}}>Why Tenderize?</h1>
+            <h1 style={{ fontWeight: 600, marginTop: '20px' }}>
+              Why Tenderize?
+            </h1>
             <div className='table'>
-            <div>
-              <span className='subtext table-left' style={{textAlign: "center", width:"20%"}}><img width='50' src={ocean} alt="ocean icon"/></span>
-              <p className='subtext'>
-              Liquify your stakes with tenderSol tokens. 
-              </p>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center', width: '20%' }}
+                >
+                  <img width='50' src={ocean} alt='ocean icon' />
+                </span>
+                <p className='subtext'>
+                  Liquify your stakes with tenderSol tokens.
+                </p>
+              </div>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center' }}
+                >
+                  <img
+                    width='70'
+                    src={stakeHammer}
+                    alt='stake hammer icon'
+                  ></img>
+                </span>
+                <p className='subtext'>
+                  Make your staking process easy and tender.
+                </p>
+              </div>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center' }}
+                >
+                  <img width='50' src={farmer} alt='farmer icon' />
+                </span>
+                <p className='subtext'>Maximize your yield! No cool downs!</p>
+              </div>
             </div>
-            <div>
-              <span className='subtext table-left' style={{textAlign: "center"}}><img width='70' src={stakeHammer} alt="stake hammer icon"></img></span>
-              <p className='subtext'>
-              Make your staking process easy and tender.
-              </p>
-            </div>
-            <div>
-              <span className='subtext table-left' style={{textAlign: "center"}}><img width='50' src={farmer} alt="farmer icon"/></span>
-              <p className='subtext'>
-              Maximize your yield! No cool downs!
-              </p>
-            </div>
-          </div>
           </div>
         </div>
       </Col>
       <Col span={24}>
         <div style={{ height: '65vh', marginBottom: '30px' }}>
           <div className='table card'>
-            <h1 style={{fontWeight:600, marginTop: '20px'}}>How does it work?</h1>
+            <h1 style={{ fontWeight: 600, marginTop: '20px' }}>
+              How does it work?
+            </h1>
             <div className='table'>
-            <div>
-              <span className='subtext table-left'>Step 1</span>
-              <p className='subtext'>
-                Order off of our select, stake menu. Deposit your stake and let
-                the tenderizing begin.
-              </p>
+              <div>
+                <span className='subtext table-left'>Step 1</span>
+                <p className='subtext'>
+                  Order off of our select, stake menu. Deposit your stake and
+                  let the tenderizing begin.
+                </p>
+              </div>
+              <div>
+                <span className='subtext table-left'>Step 2</span>
+                <p className='subtext'>
+                  Receive freshly minted tender tokens that represent your stake
+                  and rewards.
+                </p>
+              </div>
+              <div>
+                <span className='subtext table-left'>Step 3</span>
+                <p className='subtext'>
+                  Skip the waiting periods with your newly tenderized stakeq1.
+                  Go utilize, liquidize, and collateralize, all while you
+                  tenderize!
+                </p>
+              </div>
             </div>
-            <div>
-              <span className='subtext table-left'>Step 2</span>
-              <p className='subtext'>
-                Receive freshly minted tender tokens that represent your stake and rewards.
-              </p>
-            </div>
-            <div>
-              <span className='subtext table-left'>Step 3</span>
-              <p className='subtext'>
-                Skip the waiting periods with your newly tenderized stakeq1. Go utilize, liquidize, and collateralize, all while you tenderize!
-              </p>
-            </div>
-          </div>
           </div>
         </div>
       </Col>

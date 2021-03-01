@@ -4,7 +4,7 @@ import React from 'react';
 // import { Link } from 'react-router-dom';
 
 // import { DepositInput } from '../../components/DepositInput';
-import { Button, Card, Tabs, InputNumber } from 'antd';
+import { Card, Tabs } from 'antd';
 import { Line } from 'react-chartjs-2';
 // import { sendTransaction, useConnection } from '../../contexts/connection';
 // import { useNativeAccount } from '../../contexts/accounts';
@@ -33,7 +33,7 @@ export const DiscoverView = () => {
   // const connection = useConnection();
 
   // const { wallet } = useWallet();
-  const dateData =[
+  const dateData = [
     `Jan-21`,
     `Feb-21`,
     `Mar-21`,
@@ -110,8 +110,33 @@ export const DiscoverView = () => {
     2222.46,
     2200.24,
     2640.29,
-  ]; 
-  const data3 = [1,1.03,1.05,1.09,1.12,1.15,1.17,1.21,1.24,1.27,1.3,1.34,1.39,1.43,1.47,1.51,1.55,1.59,1.65,1.7,1.75,1.81,1.86,1.91];
+  ];
+  const data3 = [
+    1,
+    1.03,
+    1.05,
+    1.09,
+    1.12,
+    1.15,
+    1.17,
+    1.21,
+    1.24,
+    1.27,
+    1.3,
+    1.34,
+    1.39,
+    1.43,
+    1.47,
+    1.51,
+    1.55,
+    1.59,
+    1.65,
+    1.7,
+    1.75,
+    1.81,
+    1.86,
+    1.91,
+  ];
   const state = {
     labels: dateData,
 
@@ -137,7 +162,7 @@ export const DiscoverView = () => {
 
   const state2 = {
     labels: dateData,
-    datasets :[
+    datasets: [
       {
         label: 'SOL',
         backgroundColor: 'rgba(75,192,192,1)',
@@ -145,9 +170,9 @@ export const DiscoverView = () => {
         borderWidth: 2,
         data: data3,
         fill: false,
-      }
-    ]
-  }
+      },
+    ],
+  };
   // const { id } = useParams<{ id: string }>();
   // const lendingReserve = useLendingReserve('SOL');
   // console.log('Reserve:', lendingReserve);
@@ -213,7 +238,9 @@ export const DiscoverView = () => {
         }}
       >
         <div>
-          <h1 style={{fontWeight: 600 }}>Projected rewards in tenderSOL (tSOL) when staking 100 SOL</h1>
+          <h1 style={{ fontWeight: 600 }}>
+            Projected rewards in tenderSOL (tSOL) when staking 100 SOL
+          </h1>
           <h3>(compared to HODL SOL)</h3>
           <Card className='card'>
             <Line
@@ -237,7 +264,9 @@ export const DiscoverView = () => {
               }}
             />
           </Card>
-          <h1 style={{fontWeight: 600, marginTop:"30px" }}>Price of tSOL/SOL pair</h1>
+          <h1 style={{ fontWeight: 600, marginTop: '30px' }}>
+            Price of tSOL/SOL pair
+          </h1>
           <Card className='card'>
             <Line
               data={state2}
@@ -251,19 +280,34 @@ export const DiscoverView = () => {
         </div>
 
         <div style={{ marginTop: '30px' }}>
-          <h1 style={{fontWeight: 600 }}>What is tenderSol?</h1>
+          <h1 style={{ fontWeight: 600 }}>What is tenderSol?</h1>
           <p className='regulartext'>
-            TenderSol is a value accruing staking derivative token, which allows you to stake or unstake without any no bonding and unbonding period!
+            TenderSol is a value accruing staking derivative token, which allows
+            you to stake or unstake without any no bonding and unbonding period!
           </p>
           <p className='regulartext'>
-            Simply put, you can stake yours SOL tokens easily and maximize your rewards. You can also trade your tenderSols, use them as a collateral or just keep them under the pillow!
+            Simply put, you can stake yours SOL tokens easily and maximize your
+            rewards. You can also trade your tenderSols, use them as a
+            collateral or just keep them under the pillow!
           </p>
           <p className='regulartext'>
-            Our main focus is to make staking more efficient and easy for Solana community.
-            Having a tenderSol token that represents your staking position you to use it again, for example as a collateral in other protocols.
+            Our main focus is to make staking more efficient and easy for Solana
+            community. Having a tenderSol token that represents your staking
+            position you to use it again, for example as a collateral in other
+            protocols.
           </p>
           <p className='regulartext'>
-            Find out more about Solana <a href="https://solana.com/" target="_blank" className='regulartext' style={{color: "#51C0BF"}}>here</a>! 
+            Find out more about Solana{' '}
+            <a
+              href='https://solana.com/'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='regulartext'
+              style={{ color: '#51C0BF' }}
+            >
+              here
+            </a>
+            !
           </p>
         </div>
       </div>
@@ -316,7 +360,7 @@ export const DiscoverView = () => {
                 <img
                   src={tenderSol}
                   alt='tender solana logo'
-                  width = '100'
+                  width='100'
                   style={{ maxWidth: '30%' }}
                 />
                 <h2 className='subtext' style={{ marginTop: '5px' }}>
