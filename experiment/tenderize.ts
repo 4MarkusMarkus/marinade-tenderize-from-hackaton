@@ -884,7 +884,7 @@ export class TenderizeProgram {
   async mergeAllStakes(): Promise<void> {
     const validators = await this.readValidators();
     if (validators.length == 0) {
-      throw Error("No validator added");
+      return;
     }
 
     const stakePairs: StakePair[] = [];
