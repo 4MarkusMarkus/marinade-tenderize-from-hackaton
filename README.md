@@ -60,58 +60,6 @@ All staking rewards are automatically reinvested, thus we save gas cost and time
 
 ---
 
-### System Interactions
-
-**Deposit**
-
-Alice deposits solana token into the system and gets back tenderSolana
-
-1. Solana Token is transferred to Manager program
-
-2. Based on current shareprice of tenderSolana the appropriate amount of tenderSols are minted and transferred to Alice
-
-3. The original token is kept as a reserve in Manager program main account. At the end of the epoch function delageteStake() is called, this function does following:
-
-
-    1. Pays out LPs who wanted to withdraw their stake in previous epoch, but weren’t able to (owed[])
-
-
-    2. The rest is staked, in our case tenderized 😉. Manager sends rest minus 10% (reserve to pay out LPs) to staking pools.
-
-Things to observe:
-
-No worming up + cooling down period. 
-
- \
-Staking rewards are received for longer than if LPs just used staking pools, since there are no staking rewards during worming up + cooling down period.
-
-
-**Withdrawal**
-
-Bob withdraws his SOL token by providing tSOL
-
-
-
-*   IF enough funds in reserve 
-    *   IF YES Withdraw()
-        *   1. tSOLs are transferred to Reserve and burned
-        *   2. SOLs is send back to Bob
-    *   IF NOT 
-        *   We will notify user that there are not enough funds in the reserve, in such a case user can decide to come later or to “Get in line to Unstake”, in such case fn getInLin() is called which does following:
-            *   1. tSOLs are transferred to Reserve
-            *   2. Bob receives SOLs at the end of epoch, if there is enough funds in the reserve at this time
-            *   3. If there is not, he would wait until next epoch
-
-**Things to observe:**
-
-Bob receives his initial deposit + accrued staking rewards since tenderSolana token has accrued in value in the time between his deposit and withdrawal.
-
-If he has to wait for his deposit, he is receiving staking rewards for all this time. 
-
-If it happens that there is a time where change in deposits in negative for couple of continues epoch, it may happen that LPs would have to wait for a long time to get their Solana tokens back. In such a case Manager will unstake necessary amount to pay out LPs 
-
-
-
 ## Vision
 Our vision is to make staking stupid simple, thus leveling the playing field for the everyday user and give them the benefits of blockchain OGs 😎.
 We aim to serve users first, hence being chain neutral, offering coins based on what people desire. 
@@ -191,7 +139,7 @@ npm install
 
 ```
 
-> update creditors, validator balances, restakes rewards. This script needs to be run at least at the end of each epoch. 
+> update creditors, validator balances, restakes rewards. This script needs to be run at least once at the end of each epoch. 
 
 ```bash
 ./tadm.ts
