@@ -212,17 +212,6 @@ export const HomeView = () => {
               <div>
                 <span
                   className='subtext table-left'
-                  style={{ textAlign: 'center', width: '20%' }}
-                >
-                  <img width='50' src={ocean} alt='ocean icon' />
-                </span>
-                <p className='subtext'>
-                  Liquify your stakes with tenderSol tokens.
-                </p>
-              </div>
-              <div>
-                <span
-                  className='subtext table-left'
                   style={{ textAlign: 'center' }}
                 >
                   <img
@@ -232,7 +221,7 @@ export const HomeView = () => {
                   ></img>
                 </span>
                 <p className='subtext'>
-                  Make your staking process easy and tender.
+                  Simplify your staking process.
                 </p>
               </div>
               <div>
@@ -242,7 +231,18 @@ export const HomeView = () => {
                 >
                   <img width='50' src={farmer} alt='farmer icon' />
                 </span>
-                <p className='subtext'>Maximize your yield! No cool downs!</p>
+                <p className='subtext'>Maximize your yield.</p>
+              </div>
+              <div>
+                <span
+                  className='subtext table-left'
+                  style={{ textAlign: 'center', width: '20%' }}
+                >
+                  <img width='50' src={ocean} alt='ocean icon' />
+                </span>
+                <p className='subtext'>
+                  Liquify your stakes and get Tender tokens.
+                </p>
               </div>
             </div>
           </div>
@@ -258,29 +258,26 @@ export const HomeView = () => {
               <div>
                 <span className='subtext table-left'>Step 1</span>
                 <p className='subtext'>
-                  Order off of our select, stake menu. Deposit your stake and
-                  let the tenderizing begin.
+                  Browse our stake menu, stake and receive freshly minted Tender tokens that represent your stake and rewards.
                 </p>
               </div>
               <div>
                 <span className='subtext table-left'>Step 2</span>
                 <p className='subtext'>
-                  Sit down, relax and start receiving staking rewards. As your
-                  stakes tenderize, the value of your tendertokens go up.
+                Sit down, relax and start receiving staking rewards. As your stakes tenderize, the value of your Tender tokens go up.
                 </p>
               </div>
               <div>
                 <span className='subtext table-left'>Step 3</span>
                 <p className='subtext'>
-                  Skip the waiting periods with your newly tenderized stake. Go
-                  utilize, liquidize, and collateralize, all while tenderize!
+                Skip the waiting periods with your newly tenderized stake. Go utilize, liquidize, and collateralize, all while you tenderize!
                 </p>
               </div>
             </div>
           </div>
         </div>
       </Col>
-      <Col span={12} offset={2}>
+      <Col span={12} offset={2} style={{marginTop:'50px'}}>
         <div style={{ marginTop: '80px', marginBottom: '100px' }}>
           <img style={{ maxWidth: '100%' }} src={friends} alt='friends' />
         </div>
