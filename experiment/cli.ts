@@ -218,7 +218,7 @@ export async function run(): Promise<void> {
   }
 
   console.log(`Tenderize ${tenderize.stakePool.publicKey.toBase58()} with reserve ${await tenderize.getReserveAddress()} ${reserve!.lamports / LAMPORTS_PER_SOL}`);
-  console.log(`Token ${tenderize.poolMintToken}`);
+  console.log(`Token ${tenderize.poolMintToken} validator list ${tenderize.validatorStakeListAccount.publicKey}`);
   console.log(`Balance ${Number(state!.stakeTotal) / LAMPORTS_PER_SOL} SOL / ${Number(state!.poolTotal) / LAMPORTS_PER_SOL} tSOL`);
   {
     const validators = await tenderize.readValidators();
@@ -236,6 +236,12 @@ export async function run(): Promise<void> {
         }
         console.log(`  Stake #${i} ${stake.toBase58()} ${stakeInfo?.state || "free"} balance ${Number(acc?.lamports || 0) / LAMPORTS_PER_SOL} active ${Number(stakeInfo?.active || 0) / LAMPORTS_PER_SOL} inactive ${Number(stakeInfo?.inactive || 0) / LAMPORTS_PER_SOL}`)
       }
+    }
+  }
+  {
+    const creditors = await tenderize.readCreditors();
+    for (const creditor of creditors) {
+      console.log(`Credit for user ${creditor.target} amount ${creditor.amount}`);
     }
   }
 

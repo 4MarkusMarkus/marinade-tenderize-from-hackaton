@@ -357,22 +357,22 @@ export class TenderizeProgram {
       validators.push({
         votePubkey: new PublicKey(
           validatorListAccount!.data.slice(
-            3 + (32 + 8 + 8 + 4) * i,
-            3 + (32 + 8 + 8 + 4) * i + 32
+            3 + (32 + 8 + 8 + 8) * i,
+            3 + (32 + 8 + 8 + 8) * i + 32
           )
         ),
         balance: Number(
           validatorListAccount!.data.readBigUInt64LE(
-            3 + (32 + 8 + 8 + 4) * i + 32
+            3 + (32 + 8 + 8 + 8) * i + 32
           )
         ),
         lastUpdateEpoch: Number(
           validatorListAccount!.data.readBigUInt64LE(
-            3 + (32 + 8 + 8 + 4) * i + 32 + 8
+            3 + (32 + 8 + 8 + 8) * i + 32 + 8
           )
         ),
         stakeCount: validatorListAccount!.data.readUInt32LE(
-          3 + (32 + 8 + 8 + 4) * i + 32 + 8 + 8
+          3 + (32 + 8 + 8 + 8) * i + 32 + 8 + 8
         ),
       });
     }
