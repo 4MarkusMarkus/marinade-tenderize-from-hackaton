@@ -76,11 +76,6 @@ There you can find:
 
 
 
-## Video
-OUR submission video will go here
-
----
-
 ## Environment Setup
 1. Install Rust from https://rustup.rs/
 2. Install Solana v1.5.0 or later from https://docs.solana.com/cli/install-solana-cli-tools#use-solanas-install-tool
