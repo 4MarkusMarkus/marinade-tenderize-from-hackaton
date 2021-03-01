@@ -141,22 +141,23 @@ export const DiscoverView = () => {
     labels: dateData,
 
     datasets: [
+      
       {
-        label: 'tSOL',
-        backgroundColor: 'orange',
-        borderColor: 'orange',
-        borderWidth: 2,
-        data: data1,
-        fill: false,
-      },
-      {
-        label: 'SOL',
-        backgroundColor: 'rgba(75,192,192,1)',
+        label: '100 SOLs',
+        backgroundColor: 'rgba(75,192,192,0.3)',
         borderColor: 'rgba(75,192,192,1)',
         borderWidth: 2,
         data: data2,
-        fill: false,
+        fill: true,
       },
+      {
+        label: '100 tSOLs',
+        backgroundColor: 'rgba(78, 102, 222, 0.2)',
+        borderColor: '#4e66de',
+        borderWidth: 2,
+        data: data1,
+        fill: true,
+      }
     ],
   };
 
@@ -165,11 +166,11 @@ export const DiscoverView = () => {
     datasets: [
       {
         label: 'SOL',
-        backgroundColor: 'rgba(75,192,192,1)',
+        backgroundColor: 'rgba(75,192,192,0.3)',
         borderColor: 'rgba(75,192,192,1)',
         borderWidth: 2,
         data: data3,
-        fill: false,
+        fill: true,
       },
     ],
   };
@@ -239,7 +240,7 @@ export const DiscoverView = () => {
       >
         <div>
           <h1 style={{ fontWeight: 600 }}>
-            Projected rewards in tenderSOL (tSOL) when staking 100 SOL
+          Projected value of 100 tenderSOLs (tSOLs) and 100 SOLs
           </h1>
           <h3>(compared to HODL SOL)</h3>
           <Card className='card'>
@@ -265,14 +266,14 @@ export const DiscoverView = () => {
             />
           </Card>
           <h1 style={{ fontWeight: 600, marginTop: '30px' }}>
-            Price of tSOL/SOL pair
+            Projected value of tSOL/SOL pair
           </h1>
           <Card className='card'>
             <Line
               data={state2}
               options={{
                 legend: {
-                  display: false,
+                  display: true,
                 },
               }}
             />

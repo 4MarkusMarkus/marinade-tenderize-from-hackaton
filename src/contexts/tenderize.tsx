@@ -20,13 +20,17 @@ export function TenderizeProvider({ children = undefined as any }) {
   useEffect(() => {
     connection.getAccountInfo(STAKE_POOL_ID).then((acc) => {
       setTenderizeAccount(TenderizeParser(STAKE_POOL_ID, acc!));
+    }, (e) => {
+      console.log(e);
     });
     const listenerId = connection.onAccountChange(STAKE_POOL_ID, (acc) => {
       setTenderizeAccount(TenderizeParser(STAKE_POOL_ID, acc!));
     })
 
     return () => {
-      connection.removeAccountChangeListener(listenerId);
+      connection.removeAccountChangeListener(listenerId).then(() => { }, (e) => {
+        console.log(e);
+      })
     };
   }, [setTenderizeAccount, connection]);
 

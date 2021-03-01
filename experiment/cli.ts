@@ -2,7 +2,7 @@ import { TenderizeProgram } from "./tenderize";
 import { ArgumentParser } from 'argparse';
 import { execShellCommand } from "./util/shell";
 import assert from "assert";
-import { Account, AccountInfo, Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Account, AccountInfo, Connection, LAMPORTS_PER_SOL, PublicKey, StakeActivationData } from "@solana/web3.js";
 import fs from 'mz/fs';
 import { argv } from "process";
 
@@ -135,7 +135,7 @@ export async function run(): Promise<void> {
   )
 
   const unstakeParser = subparsers.add_parser("unstake", {});
-  unstakeParser.add_argument("--vote");
+  unstakeParser.add_argument("--vote", {});
   unstakeParser.add_argument("--amount", {
     type: Number
   });
@@ -182,6 +182,7 @@ export async function run(): Promise<void> {
       feeDenominator: args["fee_denominator"],
       feeNumerator: args["fee_numerator"]
     });
+    state = await tenderize.readState();
   } else {
     if (state.lastEpochUpdate < (await connection.getEpochInfo()).epoch) {
       console.log('\n ...Update...');
@@ -199,9 +200,10 @@ export async function run(): Promise<void> {
   await tenderize.payAllCreditors();
 
   let reserve = await connection.getAccountInfo(await tenderize.getReserveAddress());
-  const minReserve = LAMPORTS_PER_SOL * args["min_reserve"];
-  if (!reserve || reserve.lamports < 5 * minReserve) {
-    const amount = 5 * minReserve - (reserve ? reserve.lamports : 0);
+  const minReserve = Math.max(LAMPORTS_PER_SOL * args["min_reserve"],
+    await connection.getMinimumBalanceForRentExemption(0) + await connection.getMinimumBalanceForRentExemption(10000));
+  if (!reserve || reserve.lamports < minReserve) {
+    const amount = minReserve - (reserve ? reserve.lamports : 0);
     ensureFunds(connection, payer.publicKey, amount);
 
     console.log('\n ...Calling deposit function...');
@@ -215,11 +217,31 @@ export async function run(): Promise<void> {
     reserve = await connection.getAccountInfo(await tenderize.getReserveAddress());
   }
 
+  console.log(`Tenderize ${tenderize.stakePool.publicKey.toBase58()} with reserve ${await tenderize.getReserveAddress()} ${reserve!.lamports / LAMPORTS_PER_SOL}`);
+  console.log(`Token ${tenderize.poolMintToken}`);
+  console.log(`Balance ${Number(state!.stakeTotal) / LAMPORTS_PER_SOL} SOL / ${Number(state!.poolTotal) / LAMPORTS_PER_SOL} tSOL`);
+  {
+    const validators = await tenderize.readValidators();
+    for (const validator of validators) {
+      console.log(`Validator: ${validator.votePubkey.toBase58()} balance ${validator.balance / LAMPORTS_PER_SOL}`);
+      for (let i = 0; i < validator.stakeCount; ++i) {
+        const stake = await tenderize.getStakeForValidator(validator.votePubkey, i);
+        let stakeInfo: StakeActivationData | undefined;
+        let acc: AccountInfo<Buffer> | undefined | null;
+        try {
+          acc = await connection.getAccountInfo(stake);
+          stakeInfo = await connection.getStakeActivation(stake);
+        } catch (e) {
+
+        }
+        console.log(`  Stake #${i} ${stake.toBase58()} ${stakeInfo?.state || "free"} balance ${Number(acc?.lamports || 0) / LAMPORTS_PER_SOL} active ${Number(stakeInfo?.active || 0) / LAMPORTS_PER_SOL} inactive ${Number(stakeInfo?.inactive || 0) / LAMPORTS_PER_SOL}`)
+      }
+    }
+  }
+
+
   // Process command
   switch (args["command"]) {
-    case "show": {
-      break;
-    }
     case "vadd": {
       let validators: PublicKey[];
       if (args["votes"].length === 0) {
@@ -263,7 +285,7 @@ export async function run(): Promise<void> {
       if (args["amount"]) {
         amount = args["amount"] * LAMPORTS_PER_SOL;
       } else {
-        amount = reserve!.lamports - minReserve;
+        amount = Math.round(0.9 * reserve!.lamports);
       }
       await tenderize.delegateReserveBatch(amount);
       break;
@@ -279,11 +301,17 @@ export async function run(): Promise<void> {
       break;
     }
     case "unstake": {
-      /* if (args["vote"]) {
-        await tenderize.unstake({
-
-        })
-      }*/
+      console.log("unstake");
+      if (args["vote"]) {
+        const validators = await tenderize.readValidators();
+        const v = validators.find((v) => v.votePubkey.toBase58() === args["vote"]);
+        if (!v) {
+          throw Error(`Invalid validator ${args["vote"]}`);
+        }
+        await tenderize.unstake(v, args["amount"]);
+      } else {
+        await tenderize.unstakeAll();
+      }
 
       break;
     }

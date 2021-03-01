@@ -1961,6 +1961,9 @@ impl Processor {
         let system_program_info = next_account_info(account_info_iter)?;
         // Staking program id
         let stake_program_info = next_account_info(account_info_iter)?;
+        // Rent sysvar account
+        let rent_info = next_account_info(account_info_iter)?;
+        let rent = &Rent::from_account_info(rent_info)?;
         // Clock sysvar account
         let clock_info = next_account_info(account_info_iter)?;
         // let clock = &Clock::from_account_info(clock_info)?;
@@ -2069,18 +2072,18 @@ impl Processor {
 
                     invoke_signed(
                         &system_instruction::create_account(
-                            deposit_info.key, // Sending 0, so any signer will suffice
+                            owner_info.key, // Sending 0, so any signer will suffice
                             split_stake_info.key,
-                            0,
+                            rent.minimum_balance(std::mem::size_of::<StakeState>()),
                             std::mem::size_of::<StakeState>() as u64,
                             &stake::id(),
                         ),
                         &[
                             system_program_info.clone(),
-                            deposit_info.clone(),
+                            owner_info.clone(),
                             split_stake_info.clone(),
                         ],
-                        &[deposit_signer_seeds, split_stake_signer_seeds],
+                        &[split_stake_signer_seeds],
                     )?;
 
                     invoke_signed(
