@@ -2,6 +2,8 @@
 
 Tenderize.me is a non-custodial liquid staking solution, focused on yield maximisation and ease of use while keeping staking decentralized! 
 
+Start Tenderizing now on testnet at https://solana.tenderize.me/ !
+
 ## Overview
 ### Benefits
 🔨🥩    Making staking easy and tender
@@ -82,6 +84,16 @@ There you can find:
 3. Install NodeJS and npm
 
 ## quickstart
+
+### testnet deployment
+
+You can Tenderize your SOLs on solana testnet already.
+
+Just go to https://solana.tenderize.me/ change your network to testnet and you are ready to Tenderize!!! 
+
+You can check out a deployed AMM pool with tSOLs/SOLs tokens as well. "Swap" button in upper right corner will take you to the pool (deployed on testnet too).
+
+### local deployment
 
 ```bash
 git clone https://github.com/Tenderize/Tenderize-on-solana.git
