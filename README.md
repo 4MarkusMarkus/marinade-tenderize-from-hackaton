@@ -157,6 +157,7 @@ npm start
 >  open a second terminal window and run local validator(chain)
 
 ```bash
+solana config set --url http://localhost:8899/ 
 npm run test-validator
 
 ```
@@ -172,8 +173,7 @@ npm run build:program
 ```bash
 cd experiment
 npm install
-npm run prepare:env
-npm start
+npm run ./tadm.ts
 ```
 
 Tada! you can Tenderize your SOLs now  🥩🔨!
