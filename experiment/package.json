@@ -17,6 +17,7 @@
     "@tsconfig/recommended": "^1.0.1",
     "@types/eslint": "^7.2.4",
     "@types/eslint-plugin-prettier": "^3.1.0",
+    "@types/lodash": "^4.14.168",
     "@types/mkdirp": "^1.0.1",
     "@types/mz": "^2.7.2",
     "@types/prettier": "^2.1.5",
@@ -32,9 +33,12 @@
   },
   "dependencies": {
     "@solana/web3.js": "^0.89.1",
-    "dotenv": "8.2.0",
+    "@types/argparse": "^2.0.5",
+    "argparse": "^2.0.1",
     "buffer-layout": "^1.2.0",
+    "dotenv": "8.2.0",
     "json-to-pretty-yaml": "^1.2.2",
+    "lodash": "^4.17.21",
     "mkdirp": "^1.0.4",
     "mz": "^2.7.0"
   },

@@ -12,6 +12,8 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 
+const _ = require("lodash");
+
 const SPL_TOKEN_PROGRAM_ID = new PublicKey(
   'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
 );
@@ -34,6 +36,10 @@ export interface CreateValidatorStakeParams {
 }
 
 export interface AddValidatorParams {
+  validator: PublicKey;
+}
+
+export interface RemoveValidatorParams {
   validator: PublicKey;
 }
 
@@ -100,7 +106,7 @@ export interface UnstakeParams {
 }
 
 export interface UpdateListBalanceParams {
-  validators: PublicKey[];
+  validators: ValidatorInfo[];
 }
 
 export interface State {
@@ -301,33 +307,43 @@ export class TenderizeProgram {
     });
   }
 
-  async readState(): Promise<State | null> {
+  parseState(data: Buffer): State {
+    return {
+      version: data.readUInt8(0),
+      owner: new PublicKey(data.slice(1, 33)),
+      // 2 bytes of bump seeds. Not useful
+      validatorStakeList: new PublicKey(data.slice(35, 67)),
+      creditList: new PublicKey(data.slice(67, 99)),
+      poolMint: new PublicKey(data.slice(99, 131)),
+      ownerFeeAccount: new PublicKey(data.slice(131, 163)),
+      creditReserve: new PublicKey(data.slice(163, 195)),
+      tokenProgram: new PublicKey(data.slice(195, 227)),
+      // Padding
+      stakeTotal: data.readBigUInt64LE(232),
+      poolTotal: data.readBigUInt64LE(240),
+      lastEpochUpdate: data.readBigUInt64LE(248),
+      feeDenominator: data.readBigUInt64LE(256),
+      feeNumerator: data.readBigUInt64LE(264),
+    }
+  }
+
+  async readState(setState?: (state: State) => void): Promise<State | null> {
     const stateAccount = await this.connection.getAccountInfo(
       this.stakePool.publicKey,
       'singleGossip'
     );
 
+    if (setState) {
+      this.connection.onAccountChange(this.stakePool.publicKey, (acc) => {
+        setState(this.parseState(acc.data));
+      })
+    }
+
     if (!stateAccount || stateAccount.data.length == 0) {
       return null;
     }
 
-    return {
-      version: stateAccount.data.readUInt8(0),
-      owner: new PublicKey(stateAccount.data.slice(1, 33)),
-      // 2 bytes of bump seeds. Not useful
-      validatorStakeList: new PublicKey(stateAccount.data.slice(35, 67)),
-      creditList: new PublicKey(stateAccount.data.slice(67, 99)),
-      poolMint: new PublicKey(stateAccount.data.slice(99, 131)),
-      ownerFeeAccount: new PublicKey(stateAccount.data.slice(131, 163)),
-      creditReserve: new PublicKey(stateAccount.data.slice(163, 195)),
-      tokenProgram: new PublicKey(stateAccount.data.slice(195, 227)),
-      // Padding
-      stakeTotal: stateAccount.data.readBigUInt64LE(232),
-      poolTotal: stateAccount.data.readBigUInt64LE(240),
-      lastEpochUpdate: stateAccount.data.readBigUInt64LE(248),
-      feeDenominator: stateAccount.data.readBigUInt64LE(256),
-      feeNumerator: stateAccount.data.readBigUInt64LE(264),
-    }
+    return this.parseState(stateAccount.data);
   }
 
   async readValidators(): Promise<ValidatorInfo[]> {
@@ -381,6 +397,46 @@ export class TenderizeProgram {
   async addValidatorInstruction(params: AddValidatorParams) {
     const data = Buffer.alloc(1);
     let p = data.writeUInt8(2, 0);
+
+    return new TransactionInstruction({
+      keys: [
+        {
+          pubkey: this.stakePool.publicKey,
+          isSigner: false,
+          isWritable: false,
+        },
+        { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
+        {
+          pubkey: this.validatorStakeListAccount.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+        { pubkey: params.validator, isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
+      ],
+      programId: this.programId,
+      data,
+    });
+  }
+
+  async removeValidator(params: RemoveValidatorParams) {
+    console.log(`Add validator ${params.validator}`);
+    const transaction = new Transaction();
+    transaction.add(await this.removeValidatorInstruction(params));
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [this.payerAccount, this.owner],
+      {
+        commitment: 'singleGossip',
+        preflightCommitment: 'singleGossip',
+      }
+    );
+  }
+
+  async removeValidatorInstruction(params: RemoveValidatorParams) {
+    const data = Buffer.alloc(1);
+    let p = data.writeUInt8(3, 0);
 
     return new TransactionInstruction({
       keys: [
@@ -737,9 +793,11 @@ export class TenderizeProgram {
       throw Error(`Left ${amountLeft}`);
     }
 
-    await this.delegateReserve({
-      validators: instructions,
-    });
+    for (let chunk of _.chunk(instructions, 5)) {
+      await this.delegateReserve({
+        validators: chunk,
+      });
+    }
   }
 
   async mergeStakes(params: MergeStakesParams): Promise<void> {
@@ -853,9 +911,11 @@ export class TenderizeProgram {
       }
     }
 
-    await this.mergeStakes({
-      stakePairs
-    });
+    for (let chunk of _.chunk(stakePairs, 4)) {
+      await this.mergeStakes({
+        stakePairs: chunk
+      });
+    }
   }
 
   async unstake(params: UnstakeParams): Promise<void> {
@@ -943,6 +1003,10 @@ export class TenderizeProgram {
       programId: this.programId,
       data,
     });
+  }
+
+  async unstakeValidator(volidator: ValidatorInfo) {
+
   }
 
   async unstakeAll(): Promise<void> {
@@ -1052,8 +1116,20 @@ export class TenderizeProgram {
     return creditors;
   }
 
-  async updateListBalanceReserve(
-    params: UpdateListBalanceParams
+  async payAllCreditors() {
+    let creditors = await this.readCreditors();
+    while (creditors.length > 0) {
+      const oldLength = creditors.length;
+      await this.payCreditors(30);
+      creditors = await this.readCreditors();
+      if (creditors.length == oldLength) {
+        return;
+      }
+    }
+  }
+
+  async updateListBalance(
+    params: UpdateListBalanceParams,
   ): Promise<void> {
     const transaction = new Transaction();
     transaction.add(await this.updateListBalanceInstruction(params));
@@ -1069,7 +1145,7 @@ export class TenderizeProgram {
   }
 
   async updateListBalanceInstruction(
-    params: UpdateListBalanceParams
+    params: UpdateListBalanceParams,
   ): Promise<TransactionInstruction> {
     const data = Buffer.alloc(1);
     let p = data.writeUInt8(4, 0);
@@ -1096,20 +1172,15 @@ export class TenderizeProgram {
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
     ];
-
-    const allValidators = await this.readValidators();
     for (const validator of params.validators) {
       keys.push({
-        pubkey: validator,
+        pubkey: validator.votePubkey,
         isSigner: false,
         isWritable: false,
       });
 
-      const validatorInfo = allValidators.find((v) =>
-        v.votePubkey.equals(validator)
-      );
-      for (let i = 0; i < validatorInfo!.stakeCount; ++i) {
-        const stake = await this.getStakeForValidator(validator, i);
+      for (let i = 0; i < validator.stakeCount; ++i) {
+        const stake = await this.getStakeForValidator(validator.votePubkey, i);
         keys.push({
           pubkey: stake,
           isSigner: false,
@@ -1126,9 +1197,10 @@ export class TenderizeProgram {
   }
 
   async updatePoolBalance(): Promise<void> {
+    console.log("Update pool");
     const transaction = new Transaction();
     transaction.add(await this.updatePoolBalanceInstruction());
-    await sendAndConfirmTransaction(
+    console.log("tx: " + await sendAndConfirmTransaction(
       this.connection,
       transaction,
       [this.payerAccount],
@@ -1136,7 +1208,7 @@ export class TenderizeProgram {
         commitment: 'singleGossip',
         preflightCommitment: 'singleGossip',
       }
-    );
+    ));
   }
 
   async updatePoolBalanceInstruction(): Promise<TransactionInstruction> {
@@ -1165,21 +1237,14 @@ export class TenderizeProgram {
 
   async updatePool(): Promise<void> {
     console.log('Updating pool');
-    const transaction = new Transaction();
-    transaction.add(
-      await this.updateListBalanceInstruction({
-        validators: (await this.readValidators()).map((v) => v.votePubkey),
+
+    const allValidators = await this.readValidators();
+    for (let validator of allValidators) {
+      await this.updateListBalance({
+        validators: [validator]
       })
-    );
-    transaction.add(await this.updatePoolBalanceInstruction());
-    await sendAndConfirmTransaction(
-      this.connection,
-      transaction,
-      [this.payerAccount],
-      {
-        commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip',
-      }
-    );
+    }
+
+    await this.updatePoolBalance();
   }
 }
