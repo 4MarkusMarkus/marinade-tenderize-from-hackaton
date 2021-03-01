@@ -622,7 +622,7 @@ export class TenderizeProgram {
     p = data.writeUInt32LE(params.validators.length, p);
 
     const keys = [
-      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
+      { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: false },
       { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
       {
         pubkey: this.validatorStakeListAccount.publicKey,
