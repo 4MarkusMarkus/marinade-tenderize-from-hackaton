@@ -265,16 +265,15 @@ export const HomeView = () => {
               <div>
                 <span className='subtext table-left'>Step 2</span>
                 <p className='subtext'>
-                  Receive freshly minted tender tokens that represent your stake
-                  and rewards.
+                  Sit down, relax and start receiving staking rewards. As your
+                  stakes tenderize, the value of your tendertokens go up.
                 </p>
               </div>
               <div>
                 <span className='subtext table-left'>Step 3</span>
                 <p className='subtext'>
-                  Skip the waiting periods with your newly tenderized stakeq1.
-                  Go utilize, liquidize, and collateralize, all while you
-                  tenderize!
+                  Skip the waiting periods with your newly tenderized stake. Go
+                  utilize, liquidize, and collateralize, all while tenderize!
                 </p>
               </div>
             </div>
