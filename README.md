@@ -3,7 +3,7 @@
 Tenderize.me is a non-custodial liquid staking solution, focused on yield maximisation and ease of use while keeping staking decentralized! 
 
 ## Overview
-### Bebefits
+### Benefits
 🔨🥩    Making staking easy and tender
 
 👨‍🌾      Maximizing yield, automatic reinvesting
@@ -174,6 +174,28 @@ npm run build:program
 cd experiment
 npm install
 ./tadm.ts
+```
+### testing
+
+> adding all validators in the network
+
+```bash
+./tadm.ts vadd
+
+```
+
+> distributes reserve to validators, needs to be called at the end of epoch
+
+```bash
+./tadm.ts del
+
+```
+
+> update creditors, validator balances, restakes rewards. This script needs to be run at least at the end of each epoch. 
+
+```bash
+./tadm.ts
+
 ```
 
 Tada! you can Tenderize your SOLs now  🥩🔨!
