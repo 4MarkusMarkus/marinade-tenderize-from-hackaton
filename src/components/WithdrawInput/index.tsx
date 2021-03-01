@@ -13,7 +13,7 @@ import { useWallet } from '../../contexts/wallet';
 import { ActionConfirmation } from './../ActionConfirmation';
 import { LABELS, marks } from '../../constants';
 import { RESERVE_ADDRESS_PDA, TENDERIZED_SOL_MINT_ID } from '../../utils/ids';
-import { withdraw } from '../../actions';
+import { withdraw, credit } from '../../actions';
 import { useTenderize } from '../../contexts/tenderize';
 import { ConnectButton } from '../ConnectButton';
 import { AccountLayout } from '@solana/spl-token';
@@ -49,8 +49,10 @@ export const WithdrawInput = (props: { className?: string }) => {
       });
   }, [connection]);
 
-  const isReserveDepleted = (amount: number) =>
-    !reserve || reserve.lamports < minimumBalance + amount;
+  const isReserveDepleted = useCallback(
+    (amount: number) => !reserve || reserve.lamports < minimumBalance + amount,
+    [minimumBalance, reserve]
+  );
 
   const name = useTokenName(TENDERIZED_SOL_MINT_ID);
   const { accounts: fromAccounts, balance, balanceLamports } = useUserBalance(
@@ -80,13 +82,21 @@ export const WithdrawInput = (props: { className?: string }) => {
 
     (async () => {
       try {
-        await withdraw(
-          fromAccounts[0],
-          amount,
-          connection,
-          wallet!,
-          tenderize!.info
-        );
+        !isReserveDepleted(amount)
+          ? await withdraw(
+              fromAccounts[0],
+              amount,
+              connection,
+              wallet!,
+              tenderize!.info
+            )
+          : await credit(
+              fromAccounts[0],
+              amount,
+              connection,
+              wallet!,
+              tenderize!.info
+            );
         setValue('');
         setShowConfirmation(true);
       } catch (e) {
@@ -95,7 +105,15 @@ export const WithdrawInput = (props: { className?: string }) => {
         setPendingTx(false);
       }
     })();
-  }, [amount, connection, fromAccounts, setValue, wallet, tenderize]);
+  }, [
+    amount,
+    connection,
+    fromAccounts,
+    setValue,
+    wallet,
+    tenderize,
+    isReserveDepleted,
+  ]);
 
   const bodyStyle: React.CSSProperties = {
     display: 'flex',
@@ -140,10 +158,19 @@ export const WithdrawInput = (props: { className?: string }) => {
             type='primary'
             onClick={onWithdraw}
             loading={pendingTx}
-            disabled={fromAccounts.length === 0 || isReserveDepleted(amount)}
+            disabled={fromAccounts.length === 0}
           >
-            {LABELS.WITHDRAW_ACTION}
+            {!isReserveDepleted(amount)
+              ? LABELS.WITHDRAW_ACTION
+              : LABELS.GET_IN_LINE_ACTION}
           </ConnectButton>
+          {isReserveDepleted(amount) && (
+            <div>
+              Our reserve pool for instant withdrawals has not enough funds for
+              now, but we will send you your tenderized stake back shortly, in
+              the meantime, you still get rewards from staking.
+            </div>
+          )}
         </div>
       )}
     </Card>
