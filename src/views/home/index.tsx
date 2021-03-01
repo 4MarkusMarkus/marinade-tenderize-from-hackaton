@@ -59,8 +59,8 @@ export const HomeView = () => {
           and get rewards
         </h2>
         <h3 className='subtext' style={{ marginBottom: '2em' }}>
-          Enjoy automatic reinvestment of rewards and immediate access to staked
-          tokens.
+          Enjoy automatic reinvestment of rewards and immediate access to your
+          tokens. <br /> Don't just 🥩 stake me, 🔨 Tenderize.me first!
           {/* Making
             <span style={{ color: '#4E66DE', fontWeight: 900 }}>
               {' stake easier '}
@@ -220,9 +220,7 @@ export const HomeView = () => {
                     alt='stake hammer icon'
                   ></img>
                 </span>
-                <p className='subtext'>
-                  Simplify your staking process.
-                </p>
+                <p className='subtext'>Simplify your staking process.</p>
               </div>
               <div>
                 <span
@@ -258,26 +256,30 @@ export const HomeView = () => {
               <div>
                 <span className='subtext table-left'>Step 1</span>
                 <p className='subtext'>
-                  Browse our stake menu, stake and receive freshly minted Tender tokens that represent your stake and rewards.
+                  Browse our stake menu, stake and receive freshly minted Tender
+                  tokens that represent your stake and rewards.
                 </p>
               </div>
               <div>
                 <span className='subtext table-left'>Step 2</span>
                 <p className='subtext'>
-                Sit down, relax and start receiving staking rewards. As your stakes tenderize, the value of your Tender tokens go up.
+                  Sit down, relax and start receiving staking rewards. As your
+                  stakes tenderize, the value of your Tender tokens go up.
                 </p>
               </div>
               <div>
                 <span className='subtext table-left'>Step 3</span>
                 <p className='subtext'>
-                Skip the waiting periods with your newly tenderized stake. Go utilize, liquidize, and collateralize, all while you tenderize!
+                  Skip the waiting periods with your newly tenderized stake. Go
+                  utilize, liquidize, and collateralize, all while you
+                  tenderize!
                 </p>
               </div>
             </div>
           </div>
         </div>
       </Col>
-      <Col span={12} offset={2} style={{marginTop:'50px'}}>
+      <Col span={12} offset={2} style={{ marginTop: '50px' }}>
         <div style={{ marginTop: '80px', marginBottom: '100px' }}>
           <img style={{ maxWidth: '100%' }} src={friends} alt='friends' />
         </div>
