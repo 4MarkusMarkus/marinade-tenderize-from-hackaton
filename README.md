@@ -1,6 +1,6 @@
 # 🥩🔨 Don’t just stake me, Tenderize.me first!
 
-> Tenderize.me is a non-custodial liquid staking solution, focused on yield maximisation and ease of use while keeping staking decentralized! 
+Tenderize.me is a non-custodial liquid staking solution, focused on yield maximisation and ease of use while keeping staking decentralized! 
 
 ---
 
@@ -42,6 +42,7 @@ npm run build:program
 
 ```bash
 cd experiment
+npm install
 npm run prepare:env
 npm start
 ```
