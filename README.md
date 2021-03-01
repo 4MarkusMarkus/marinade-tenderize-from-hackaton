@@ -30,7 +30,7 @@ Combination of smart reserve with derivative token allows users to start or stop
 
 ## How it Works
 
-![image](https://github.com/Tenderize/Tenderize-on-solana/blob/main/docs/Tenderize.me%20-%20Solana%20program%20schemaF.png)
+![image](https://github.com/Tenderize/Tenderize-on-solana/blob/main/docs/Tenderize.me-schemaF.png)
 
 ### Problems we are solving
 
