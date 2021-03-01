@@ -199,7 +199,7 @@ pub enum StakePoolInstruction {
 
     ///   12) Delegate reserve to stake account
     ///
-    ///   0.  `[w]` StakePool
+    ///   0.  `[]` StakePool
     ///   1.  `[s]` Owner signature // TODO: maybe non owner can do it if properly check
     ///   2.  `[w]` Validator stake list storage account
     ///   3.  `[]` Stake pool withdraw authority

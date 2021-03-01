@@ -1643,7 +1643,7 @@ impl Processor {
             );
             return Err(StakePoolError::WrongOwner.into());
         }
-        let mut stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
+        let stake_pool = StakePool::deserialize(&stake_pool_info.data.borrow())?;
         if !stake_pool.is_initialized() {
             return Err(StakePoolError::InvalidState.into());
         }
@@ -1693,6 +1693,7 @@ impl Processor {
             .borrow()
             .saturating_sub(Self::min_reserve_balance(&rent));
         let mut total_amount = 0;
+        let mut changed = false;
         for instruction in instructions {
             let validator_vote_info = next_account_info(account_info_iter)?;
             let stake_account_info = next_account_info(account_info_iter)?;
@@ -1762,6 +1763,7 @@ impl Processor {
 
                 if instruction.stake_index >= validator.stake_count {
                     validator.stake_count = instruction.stake_index + 1;
+                    changed = true;
                 }
 
                 total_amount += instruction.amount;
@@ -1771,11 +1773,9 @@ impl Processor {
             }
         }
 
-        validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
-
-        // ? Only update stake total if the last state update epoch is current
-        stake_pool.stake_total += total_amount;
-        stake_pool.serialize(&mut stake_pool_info.data.borrow_mut())?;
+        if changed {
+            validator_stake_list.serialize(&mut validator_stake_list_info.data.borrow_mut())?;
+        }
 
         Ok(())
     }
