@@ -74,6 +74,7 @@ export const LABELS = {
   DASHBOARD_TITLE_LOANS: 'Loans',
   DASHBOARD_TITLE_DEPOSITS: 'Deposits',
   DEPOSIT_QUESTION: 'How much would you like to stake?',
+  GET_IN_LINE_ACTION: 'Get in line',
   WITHDRAW_ACTION: 'Withdraw',
   WITHDRAW_QUESTION: 'How much would you like to withdraw?',
   DASHBOARD_ACTION: 'Go to dashboard',
