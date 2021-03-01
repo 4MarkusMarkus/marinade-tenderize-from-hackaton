@@ -793,7 +793,7 @@ export class TenderizeProgram {
       throw Error(`Left ${amountLeft}`);
     }
 
-    for (let chunk of _.chunk(instructions, 5)) {
+    for (const chunk of _.chunk(instructions, 4)) {
       await this.delegateReserve({
         validators: chunk,
       });
@@ -884,7 +884,7 @@ export class TenderizeProgram {
   async mergeAllStakes(): Promise<void> {
     const validators = await this.readValidators();
     if (validators.length == 0) {
-      throw Error("No validator added");
+      return;
     }
 
     const stakePairs: StakePair[] = [];
@@ -911,28 +911,82 @@ export class TenderizeProgram {
       }
     }
 
-    for (let chunk of _.chunk(stakePairs, 4)) {
+    for (const chunk of _.chunk(stakePairs, 4)) {
       await this.mergeStakes({
         stakePairs: chunk
       });
     }
   }
 
-  async unstake(params: UnstakeParams): Promise<void> {
-    if (params.unstakes.length == 0) {
-      return;
-    }
-    const transaction = new Transaction();
-    transaction.add(await this.unstakeInstruction(params));
-    await sendAndConfirmTransaction(
-      this.connection,
-      transaction,
-      [this.payerAccount, this.owner],
-      {
-        commitment: 'singleGossip',
-        preflightCommitment: 'singleGossip',
+  async unstake(validator: ValidatorInfo, amount?: number): Promise<void> {
+    console.log(`Unstake from ${validator.votePubkey} ${amount}`);
+    let amountLeft = amount;
+
+    const unstakes: Unstake[] = [];
+    let firstFreeIndex = validator.stakeCount;
+    for (let index = 0; index < validator.stakeCount; index++) {
+      const stakeAddress = await this.getStakeForValidator(
+        validator.votePubkey,
+        index
+      );
+      const stakeAccount = await this.connection.getAccountInfo(stakeAddress);
+      if (!stakeAccount || stakeAccount.owner == SystemProgram.programId) {
+        firstFreeIndex = index;
       }
-    );
+    }
+
+    for (let i = 0; i < validator.stakeCount; ++i) {
+      const stakeAddress = await this.getStakeForValidator(validator.votePubkey, i);
+      try {
+        const stakeData = await this.connection.getStakeActivation(
+          stakeAddress,
+          'singleGossip'
+        );
+        const stakeAmount = (await this.connection.getAccountInfo(stakeAddress, 'singleGossip'))!.lamports;
+        if (amountLeft === undefined || amountLeft >= stakeAmount) {
+          // kill whole stake
+          if ((stakeData.active > 0) && ((stakeData.state == 'active') || (stakeData.state == 'activating'))) {
+            unstakes.push({
+              validator: validator.votePubkey,
+              sourceIndex: i
+            })
+          }
+        } else {
+          // Split stake
+          if ((stakeData.active > 0) && (stakeData.state == 'active')) {
+
+            unstakes.push({
+              validator: validator.votePubkey,
+              sourceIndex: i,
+              splitIndex: firstFreeIndex,
+              amount: amountLeft
+            })
+          }
+
+          break;
+        }
+
+        if (amountLeft != undefined) {
+          amountLeft -= stakeAmount;
+        }
+      } catch (e) { }
+    }
+
+    for (const chunk of _.chunk(unstakes, 4)) {
+      const transaction = new Transaction();
+      transaction.add(await this.unstakeInstruction({
+        unstakes: chunk
+      }));
+      await sendAndConfirmTransaction(
+        this.connection,
+        transaction,
+        [this.payerAccount, this.owner],
+        {
+          commitment: 'singleGossip',
+          preflightCommitment: 'singleGossip',
+        }
+      );
+    }
   }
 
   async unstakeInstruction(params: UnstakeParams): Promise<TransactionInstruction> {
@@ -942,7 +996,7 @@ export class TenderizeProgram {
 
     const keys = [
       { pubkey: this.stakePool.publicKey, isSigner: false, isWritable: true },
-      { pubkey: this.owner.publicKey, isSigner: true, isWritable: false },
+      { pubkey: this.owner.publicKey, isSigner: true, isWritable: true },
       {
         pubkey: this.validatorStakeListAccount.publicKey,
         isSigner: false,
@@ -955,6 +1009,7 @@ export class TenderizeProgram {
       },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: StakeProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
       { pubkey: SYSVAR_STAKE_HISTORY_PUBKEY, isSigner: false, isWritable: false },
     ];
@@ -1005,38 +1060,12 @@ export class TenderizeProgram {
     });
   }
 
-  async unstakeValidator(volidator: ValidatorInfo) {
-
-  }
 
   async unstakeAll(): Promise<void> {
     const validators = await this.readValidators();
-    if (validators.length == 0) {
-      throw Error("No validator added");
+    for (const validator of validators) {
+      await this.unstake(validator);
     }
-
-    const unstakes: Unstake[] = [];
-    for (let validator of validators) {
-      for (let i = 0; i < validator.stakeCount; ++i) {
-        const stakeAddress = await this.getStakeForValidator(validator.votePubkey, i);
-        try {
-          const stakeData = await this.connection.getStakeActivation(
-            stakeAddress,
-            'singleGossip'
-          );
-          if ((stakeData.active > 0) && ((stakeData.state == 'active') || (stakeData.state == 'activating'))) {
-            unstakes.push({
-              validator: validator.votePubkey,
-              sourceIndex: i
-            })
-          }
-        } catch (e) { }
-      }
-    }
-
-    await this.unstake({
-      unstakes
-    });
   }
 
   async payCreditors(maxCount: number) {

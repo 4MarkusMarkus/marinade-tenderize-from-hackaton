@@ -1,43 +1,102 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
+  InputType,
   useSliderInput,
+  useTokenName,
+  useUserBalance,
 } from '../../hooks';
-// import { LendingReserve } from '../../models/lending';
 import { TokenIcon } from '../TokenIcon';
-import { Button, Card } from 'antd';
+import { Card, Slider } from 'antd';
 import { NumericInput } from '../Input/numeric';
 import { useConnection } from '../../contexts/connection';
 import { useWallet } from '../../contexts/wallet';
-// import { PublicKey } from '@solana/web3.js';
 import { ActionConfirmation } from './../ActionConfirmation';
-import { LABELS } from '../../constants';
-import { TENDERIZED_SOL_MINT_ID, WRAPPED_SOL_MINT } from '../../utils/ids';
-import { withdraw } from '../../actions';
-import { useAccountByMint } from '../../contexts/accounts';
+import { LABELS, marks } from '../../constants';
+import { RESERVE_ADDRESS_PDA, TENDERIZED_SOL_MINT_ID } from '../../utils/ids';
+import { withdraw, credit } from '../../actions';
 import { useTenderize } from '../../contexts/tenderize';
-import BN from 'bn.js';
+import { ConnectButton } from '../ConnectButton';
+import { AccountLayout } from '@solana/spl-token';
+import { AccountInfo } from '@solana/web3.js';
 
 export const WithdrawInput = (props: { className?: string }) => {
   const connection = useConnection();
   const { wallet } = useWallet();
   const [pendingTx, setPendingTx] = useState(false);
+  const [reserve, setReserve] = useState<AccountInfo<Buffer> | null>();
+  const [minimumBalance, setMinimumBalance] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const from = useAccountByMint(TENDERIZED_SOL_MINT_ID.toBase58());
-
-  const { value, setValue } = useSliderInput((val) => {
-    return val; // TODO
-  });
-
   const tenderize = useTenderize();
+
+  useEffect(() => {
+    if (!connection) {
+      return;
+    }
+    connection.getAccountInfo(RESERVE_ADDRESS_PDA).then((res) => {
+      setReserve(res);
+    });
+  }, [connection]);
+
+  useEffect(() => {
+    if (!connection || !AccountLayout) {
+      return;
+    }
+    connection
+      .getMinimumBalanceForRentExemption(AccountLayout.span)
+      .then((rent) => {
+        setMinimumBalance(rent + 1);
+      });
+  }, [connection]);
+
+  const isReserveDepleted = useCallback(
+    (amount: number) => !reserve || reserve.lamports < minimumBalance + amount,
+    [minimumBalance, reserve]
+  );
+
+  const name = useTokenName(TENDERIZED_SOL_MINT_ID);
+  const { accounts: fromAccounts, balance, balanceLamports } = useUserBalance(
+    TENDERIZED_SOL_MINT_ID
+  );
+
+  const convert = useCallback(
+    (val: string | number) => {
+      if (typeof val === 'string') {
+        return (parseFloat(val) / balance) * 100;
+      } else {
+        return ((val * balance) / 100).toFixed(2);
+      }
+    },
+    [balance]
+  );
+
+  const { value, setValue, pct, setPct, type } = useSliderInput(convert);
+
+  const amount =
+    type === InputType.Percent
+      ? (pct * balanceLamports) / 100
+      : Math.ceil(balanceLamports * (parseFloat(value) / balance));
 
   const onWithdraw = useCallback(() => {
     setPendingTx(true);
 
     (async () => {
       try {
-        await withdraw(from!, 100000000, connection, wallet!, tenderize!.info);
-
+        !isReserveDepleted(amount)
+          ? await withdraw(
+              fromAccounts[0],
+              amount,
+              connection,
+              wallet!,
+              tenderize!.info
+            )
+          : await credit(
+              fromAccounts[0],
+              amount,
+              connection,
+              wallet!,
+              tenderize!.info
+            );
         setValue('');
         setShowConfirmation(true);
       } catch (e) {
@@ -47,11 +106,13 @@ export const WithdrawInput = (props: { className?: string }) => {
       }
     })();
   }, [
+    amount,
     connection,
+    fromAccounts,
     setValue,
-    from,
     wallet,
-    tenderize
+    tenderize,
+    isReserveDepleted,
   ]);
 
   const bodyStyle: React.CSSProperties = {
@@ -67,41 +128,51 @@ export const WithdrawInput = (props: { className?: string }) => {
       {showConfirmation ? (
         <ActionConfirmation onClose={() => setShowConfirmation(false)} />
       ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-around',
-            }}
-          >
-            <div className='deposit-input-title'>{LABELS.WITHDRAW_QUESTION}</div>
-            <div className='token-input'>
-              <TokenIcon mintAddress={WRAPPED_SOL_MINT} />
-              <NumericInput
-                value={value}
-                onChange={setValue}
-                autoFocus={true}
-                style={{
-                  fontSize: 20,
-                  boxShadow: 'none',
-                  borderColor: 'transparent',
-                  outline: 'transparent',
-                }}
-                placeholder='0.00'
-              />
-              <div>tSOL</div>
-            </div>
-
-            <Button
-              type='primary'
-              onClick={onWithdraw}
-              loading={pendingTx}
-              disabled={!from || from.info.amount.eq(new BN(0))}
-            >
-              {LABELS.WITHDRAW_ACTION}
-            </Button>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-around',
+          }}
+        >
+          <div className='deposit-input-title'>{LABELS.WITHDRAW_QUESTION}</div>
+          <div className='token-input'>
+            <TokenIcon mintAddress={TENDERIZED_SOL_MINT_ID} />
+            <NumericInput
+              value={value}
+              onChange={setValue}
+              autoFocus={true}
+              style={{
+                fontSize: 20,
+                boxShadow: 'none',
+                borderColor: 'transparent',
+                outline: 'transparent',
+              }}
+              placeholder='0.00'
+            />
+            <div>{name}</div>
           </div>
-        )}
+          <Slider marks={marks} value={pct} onChange={setPct} />
+          <ConnectButton
+            className='tenderButton tenderButtonShade'
+            type='primary'
+            onClick={onWithdraw}
+            loading={pendingTx}
+            disabled={fromAccounts.length === 0}
+          >
+            {!isReserveDepleted(amount)
+              ? LABELS.WITHDRAW_ACTION
+              : LABELS.GET_IN_LINE_ACTION}
+          </ConnectButton>
+          {isReserveDepleted(amount) && (
+            <div>
+              Our reserve pool for instant withdrawals has not enough funds for
+              now, but we will send you your tenderized stake back shortly, in
+              the meantime, you still get rewards from staking.
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 };

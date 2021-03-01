@@ -355,6 +355,8 @@ const UseNativeAccount = () => {
         updateCache(acc);
         setNativeAccount(acc);
       }
+    }, (e) => {
+      console.log(e);
     });
     connection.onAccountChange(publicKey, (acc) => {
       if (acc) {

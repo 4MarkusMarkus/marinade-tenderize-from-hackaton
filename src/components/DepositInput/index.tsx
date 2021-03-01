@@ -1,33 +1,39 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   InputType,
   useSliderInput,
   useTokenName,
   useUserBalance,
 } from '../../hooks';
-// import { LendingReserve } from '../../models/lending';
 import { TokenIcon } from '../TokenIcon';
-import { Button, Card, Slider } from 'antd';
+import { Card, Slider } from 'antd';
 import { NumericInput } from '../Input/numeric';
 import { useConnection } from '../../contexts/connection';
 import { useWallet } from '../../contexts/wallet';
 import { deposit } from '../../actions/deposit';
-// import { PublicKey } from '@solana/web3.js';
 import { ActionConfirmation } from './../ActionConfirmation';
 import { LABELS, marks } from '../../constants';
 import { WRAPPED_SOL_MINT } from '../../utils/ids';
 import { ConnectButton } from '../ConnectButton';
+import { AccountLayout } from '@solana/spl-token';
 
 export const DepositInput = (props: { className?: string }) => {
   const connection = useConnection();
   const { wallet } = useWallet();
   const [pendingTx, setPendingTx] = useState(false);
+  const [minimumBalance, setMinimumBalance] = useState(0);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  /*
-  const reserve = props.reserve;
-  const address = props.address;
-  */
+  useEffect(() => {
+    if (!connection || !AccountLayout) {
+      return;
+    }
+    connection
+      .getMinimumBalanceForRentExemption(AccountLayout.span)
+      .then((rent) => {
+        setMinimumBalance(rent + 1);
+      });
+  }, [connection]);
 
   const name = useTokenName(WRAPPED_SOL_MINT);
   const { accounts: fromAccounts, balance, balanceLamports } = useUserBalance(
@@ -50,17 +56,16 @@ export const DepositInput = (props: { className?: string }) => {
   const onDeposit = useCallback(() => {
     setPendingTx(true);
 
+    const amount =
+      type === InputType.Percent
+        ? (pct * (balanceLamports - minimumBalance * 2)) / 100
+        : Math.ceil(
+            (balanceLamports - minimumBalance) * (parseFloat(value) / balance)
+          );
+
     (async () => {
       try {
-        await deposit(
-          fromAccounts[0],
-          type === InputType.Percent
-            ? (pct * balanceLamports) / 100
-            : Math.ceil(balanceLamports * (parseFloat(value) / balance)),
-          connection,
-          wallet!
-        );
-
+        await deposit(fromAccounts[0], amount, connection, wallet!);
         setValue('');
         setShowConfirmation(true);
       } catch (e) {
@@ -70,15 +75,16 @@ export const DepositInput = (props: { className?: string }) => {
       }
     })();
   }, [
-    connection,
-    setValue,
-    balanceLamports,
-    balance,
-    wallet,
-    value,
-    pct,
     type,
+    pct,
+    balanceLamports,
+    value,
+    balance,
+    minimumBalance,
     fromAccounts,
+    connection,
+    wallet,
+    setValue,
   ]);
 
   const bodyStyle: React.CSSProperties = {
@@ -129,14 +135,6 @@ export const DepositInput = (props: { className?: string }) => {
           >
             {LABELS.DEPOSIT_ACTION}
           </ConnectButton>
-          {/* <Button
-            type='primary'
-            onClick={onDeposit}
-            loading={pendingTx}
-            disabled={fromAccounts.length === 0}
-          >
-            {LABELS.DEPOSIT_ACTION}
-          </Button> */}
         </div>
       )}
     </Card>
