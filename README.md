@@ -173,7 +173,7 @@ npm run build:program
 ```bash
 cd experiment
 npm install
-npm run ./tadm.ts
+./tadm.ts
 ```
 
 Tada! you can Tenderize your SOLs now  🥩🔨!
