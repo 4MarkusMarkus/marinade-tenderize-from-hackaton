@@ -357,7 +357,7 @@ impl ValidatorStakeInfo {
 }
 
 /// Maximum credit records
-pub const MAX_CREDIT_RECORDS: usize = 10000;
+pub const MAX_CREDIT_RECORDS: usize = 1000;
 /// Credit list
 #[repr(C)]
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -400,6 +400,7 @@ impl CreditList {
     /// Deserializes a byte buffer into a ValidatorStakeList.
     pub fn deserialize(input: &[u8]) -> Result<Self, ProgramError> {
         if input.len() < Self::LEN {
+            msg!("Too short credit list account");
             return Err(ProgramError::InvalidAccountData);
         }
 
