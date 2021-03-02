@@ -2219,6 +2219,7 @@ impl Processor {
             .saturating_sub(Self::min_reserve_balance(&rent));
         let mut total_amount = 0;
         let mut invalid_credits = Vec::new();
+        // take all creditors out of the list
         let mut credit_list_iter = {
             let size = credit_list.credits.len();
             std::mem::replace(&mut credit_list.credits, Vec::with_capacity(size)).into_iter()
@@ -2250,6 +2251,8 @@ impl Processor {
                 .ok_or(StakePoolError::CalculationFailure)?;
 
             if total_amount + stake_amount > lamports_available {
+                // return creditor into the list
+                credit_list.credits.push(credit);
                 break;
             }
 
@@ -2288,6 +2291,7 @@ impl Processor {
             total_amount += stake_amount;
         }
 
+        // Return creditors left into the list
         credit_list.credits.extend(credit_list_iter);
         credit_list.credits.extend(invalid_credits.into_iter());
 

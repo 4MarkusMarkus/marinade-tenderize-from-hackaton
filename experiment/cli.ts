@@ -11,13 +11,15 @@ async function readAccount(fileName: string): Promise<Account> {
 }
 
 async function ensureFunds<T>(connection: Connection, payer: PublicKey, amount: number) {
-  const account = await connection.getAccountInfo(payer);
+  let account = await connection.getAccountInfo(payer);
   let balance = account ? account.lamports : 0;
   while (balance < amount) {
     console.log('\n ...Airdrop 10 SOL...');
     await connection.requestAirdrop(payer, 10 * LAMPORTS_PER_SOL);
-    balance += 10 * LAMPORTS_PER_SOL;
+    account = await connection.getAccountInfo(payer);
+    balance = account ? account.lamports : 0;
   }
+  console.log(`Balance is ${balance}`)
 }
 
 export async function run(): Promise<void> {
