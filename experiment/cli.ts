@@ -197,16 +197,16 @@ export async function run(): Promise<void> {
     }
   }
 
-  console.log('\n ...Pay creditors...');
-
-  await tenderize.payAllCreditors();
-
   let reserve = await connection.getAccountInfo(await tenderize.getReserveAddress());
   const minReserve = Math.max(LAMPORTS_PER_SOL * args["min_reserve"],
     await connection.getMinimumBalanceForRentExemption(0) + await connection.getMinimumBalanceForRentExemption(10000));
   if (!reserve || reserve.lamports < minReserve) {
     const amount = minReserve - (reserve ? reserve.lamports : 0);
-    ensureFunds(connection, payer.publicKey, amount);
+    // ensureFunds(connection, payer.publicKey, amount);
+    const balance = (await connection.getAccountInfo(tenderize.payerAccount.publicKey))?.lamports || 0;
+    if (balance < amount) {
+      throw Error(`Not enough fund in your account. Needed ${amount / LAMPORTS_PER_SOL} found ${balance / LAMPORTS_PER_SOL}`);
+    }
 
     console.log('\n ...Calling deposit function...');
 
@@ -215,9 +215,13 @@ export async function run(): Promise<void> {
       amount,
       userToken: tenderize.ownersFee
     });
-
-    reserve = await connection.getAccountInfo(await tenderize.getReserveAddress());
   }
+
+  console.log('\n ...Pay creditors...');
+
+  await tenderize.payAllCreditors();
+
+  reserve = await connection.getAccountInfo(await tenderize.getReserveAddress());
 
   console.log(`Tenderize ${tenderize.stakePool.publicKey.toBase58()} with reserve ${await tenderize.getReserveAddress()} ${reserve!.lamports / LAMPORTS_PER_SOL}`);
   console.log(`Token ${tenderize.poolMintToken} validator list ${tenderize.validatorStakeListAccount.publicKey}`);
