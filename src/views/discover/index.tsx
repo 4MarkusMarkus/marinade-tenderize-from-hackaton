@@ -4,7 +4,7 @@ import React from 'react';
 // import { Link } from 'react-router-dom';
 
 // import { DepositInput } from '../../components/DepositInput';
-import { Card, Tabs, Affix } from 'antd';
+import { Card, Tabs } from 'antd';
 import { Line } from 'react-chartjs-2';
 // import { sendTransaction, useConnection } from '../../contexts/connection';
 // import { useNativeAccount } from '../../contexts/accounts';
