@@ -10,11 +10,15 @@ const tenderizeLogo = require('../../img/tenderizeLogo.svg');
 export const AppLayout = React.memo((props: any) => {
   return (
     <div className='App wormhole-bg'>
-      <Layout>
+      <div style={{background: "#FFE8B9", height: '50px', paddingTop:'10px'}}>
+        <h1 className="announcement">Tenderize.me is currently only live on Solana testnet.</h1>
+      </div>
+      <Layout >
         <div className='background'></div>
         <div className='bg-container'>
           <div className='bg-inner'></div>
         </div>
+
         <Header
           className='App-Bar'
           style={{ marginTop: '20px', marginBottom: '20px' }}
