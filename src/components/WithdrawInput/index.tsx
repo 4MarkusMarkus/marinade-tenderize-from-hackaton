@@ -36,6 +36,15 @@ export const WithdrawInput = (props: { className?: string }) => {
     connection.getAccountInfo(RESERVE_ADDRESS_PDA).then((res) => {
       setReserve(res);
     });
+    
+    const handle = connection.onAccountChange(RESERVE_ADDRESS_PDA, (acc) => {
+      setReserve(acc);
+    });
+
+    return () => {
+      connection.removeAccountChangeListener(handle);
+    }
+
   }, [connection]);
 
   useEffect(() => {
