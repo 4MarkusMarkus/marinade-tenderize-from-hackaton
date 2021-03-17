@@ -311,74 +311,73 @@ export const DiscoverView = () => {
             !
           </p>
         </div>
-      </div>
-
-      <div
-        className='card'
-        style={{ height: '580px', width: '30%', position: 'sticky', top: 0 }}
-      >
-        <Card className='card' style={{ width: '100%', height: '100%' }}>
-          <Tabs defaultActiveKey='1' centered={true}>
-            <TabPane tab='Stake' key='1'>
-              <div>
-                <img
-                  src={solanaLogo}
-                  alt='solana logo'
-                  style={{ maxWidth: '30%' }}
-                />
-                <h2 className='subtext' style={{ marginTop: '5px' }}>
-                  SOL Token
-                </h2>
-              </div>
-              <div style={{ marginTop: '5px', marginBottom: '5px' }}>
-                <h2 className='title' style={{ marginBottom: 0 }}>
-                  15.5%
-                </h2>
-                <h3 style={{ marginBottom: 0 }}>Rewards</h3>
-                <h5>(projected APY)</h5>
-              </div>
-              {/* <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
-              <span> SOL</span>
-              <br /> */}
-              <DepositInput />
-              {/* <Button
-                className='tenderButton tenderButtonShade'
-                style={{ marginTop: '10px' }}
-                onClick={
-                  () => alert('Not implemented')
-                  deposit({
-                    userSource: account,
-                    amount: 100000000000,
-                    userToken: '',
-                  })
-                }
-              >
-                Stake
-              </Button> */}
-            </TabPane>
-            <TabPane tab='Unstake' key='2'>
-              <div>
-                <img
-                  src={tenderSol}
-                  alt='tender solana logo'
-                  width='100'
-                  style={{ maxWidth: '30%' }}
-                />
-                <h2 className='subtext' style={{ marginTop: '5px' }}>
-                  tSOL Token
-                </h2>
-              </div>
-              <div style={{ marginTop: '5px', marginBottom: '5px' }}>
-                <h2 className='title' style={{ marginBottom: 0 }}>
-                  15.5%
-                </h2>
-                <h3 style={{ marginBottom: 0 }}>Rewards</h3>
-                <h5>(projected APY)</h5>
-              </div>
-              <WithdrawInput />
-            </TabPane>
-          </Tabs>
-        </Card>
+      </div>   
+      <div style={{width: '40%'}}> 
+        <div className='sticky' >
+          <Card style={{ width: '100%', overflow: 'auto'}}>
+            <Tabs defaultActiveKey='1' centered={true}>
+              <TabPane tab='Stake' key='1' >
+                <div>
+                  <img
+                    src={solanaLogo}
+                    alt='solana logo'
+                    width='100'
+                    style={{ maxWidth: '30%' }}
+                  />
+                  <h2 className='subtext' style={{ marginTop: '5px' }}>
+                    SOL Token
+                  </h2>
+                </div>
+                <div style={{ marginTop: '5px', marginBottom: '5px' }}>
+                  <h2 className='title' style={{ marginBottom: 0 }}>
+                    15.5%
+                  </h2>
+                  <h3 style={{ marginBottom: 0 }}>Rewards</h3>
+                  <h5>(projected APY)</h5>
+                </div>
+                {/* <InputNumber style={{ marginTop: '10px' }}></InputNumber>{' '}
+                <span> SOL</span>
+                <br /> */}
+                <DepositInput />
+                {/* <Button
+                  className='tenderButton tenderButtonShade'
+                  style={{ marginTop: '10px' }}
+                  onClick={
+                    () => alert('Not implemented')
+                    deposit({
+                      userSource: account,
+                      amount: 100000000000,
+                      userToken: '',
+                    })
+                  }
+                >
+                  Stake
+                </Button> */}
+              </TabPane>
+              <TabPane tab='Unstake' key='2' >
+                <div>
+                  <img
+                    src={tenderSol}
+                    alt='tender solana logo'
+                    width='100'
+                    style={{ maxWidth: '30%' }}
+                  />
+                  <h2 className='subtext' style={{ marginTop: '5px' }}>
+                    tSOL Token
+                  </h2>
+                </div>
+                <div style={{ marginTop: '5px', marginBottom: '5px' }}>
+                  <h2 className='title' style={{ marginBottom: 0 }}>
+                    15.5%
+                  </h2>
+                  <h3 style={{ marginBottom: 0 }}>Rewards</h3>
+                  <h5>(projected APY)</h5>
+                </div>
+                <WithdrawInput />
+              </TabPane>
+            </Tabs>
+          </Card>
+        </div>
       </div>
     </div>
   );

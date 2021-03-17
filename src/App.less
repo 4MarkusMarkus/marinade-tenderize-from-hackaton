@@ -127,7 +127,15 @@ body {
   border-bottom: 120vh solid transparent;
   border-left: 40vw solid var(--bg-left);
 }
-
+.announcement {
+  font-size: 15px;
+  font-weight: 600;
+}
+.sticky {
+  position: sticky;
+  position: -webkit-sticky;
+  top: 0;
+}
 .title {
   font-family: "Biryani";
   font-weight: 600;
@@ -220,20 +228,21 @@ p {
   .ant-menu-horizontal {
     border-bottom-color: transparent;
     background-color: transparent;
+    display: flex;
     line-height: inherit;
     font-size: 16px;
     margin: 0 10px;
 
     .ant-menu-item {
       margin: 0 10px;
-      color: lightgrey;
+      // color: lightgrey;
       height: 35px;
       line-height: 35px;
       border-width: 0px !important;
     }
 
     .ant-menu-item:hover {
-      color: white;
+      text-decoration: underline;
       border-width: 0px !important;
     }
 
