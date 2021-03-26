@@ -11,8 +11,8 @@ const friends = require("../../img/friends.svg");
 const solanaLogo = require("../../img/solanaLogo.svg");
 const polygonLogo = require("../../img/polygonDark.svg");
 const keepLogo = require("../../img/keep.svg");
-const hammer = require("../../img/hammer.svg");
-const meat = require("../../img/meat.svg");
+// const hammer = require("../../img/hammer.svg");
+// const meat = require("../../img/meat.svg");
 const ocean = require("../../img/ocean.svg");
 const farmer = require("../../img/farmer.svg");
 const stakeHammer = require("../../img/stakeHammer.svg");
@@ -55,17 +55,17 @@ export const HomeView = () => {
         </h2>
         <h3 className="subtext" style={{ marginBottom: "2em" }}>
           Enjoy automatic reinvestment of rewards and immediate access to your
-          tokens. <br /> Don't just 🥩 stake me, 🔨 Tenderize.me first!
+          tokens. <br /> Don't just 🥩 stake me, 👨‍🍳 Marinade me first!
           {/* Making
             <span style={{ color: '#4E66DE', fontWeight: 900 }}>
               {' stake easier '}
             </span>
             to chew. */}
         </h3>
-        <div style={{ position: "relative" }}>
+        {/* <div style={{ position: "relative" }}>
           <img id="meat" width="100" src={meat} alt="logo" />
           <img id="hammer" width="130" src={hammer} alt="logo" />
-        </div>
+        </div> */}
       </Col>
       <Col
         span={22}
@@ -190,18 +190,18 @@ export const HomeView = () => {
         {/* <p>{balance}</p> */}
       </Col>
       <Col span={10}>
-        <p className="subtext"> Tenderize is a liquid staking protocol. </p>
+        <p className="subtext">Marinade is a liquid staking protocol. </p>
         <p className="subtext">
           {" "}
-          It allows you to enjoy your farm-fresh, tender staking returns without
-          the wait of an unbonding period.
+          It allows you to enjoy your farm-fresh, marinated staking returns
+          without the wait of an unbonding period.
         </p>
       </Col>
       <Col span={24}>
         <div style={{ height: "65vh", marginBottom: "30px" }}>
           <div className="table card">
             <h1 style={{ fontWeight: 600, marginTop: "20px" }}>
-              Why Tenderize?
+              Why Marinade?
             </h1>
             <div className="table">
               <div>
@@ -234,7 +234,7 @@ export const HomeView = () => {
                   <img width="50" src={ocean} alt="ocean icon" />
                 </span>
                 <p className="subtext">
-                  Liquify your stakes and get Tender tokens.
+                  Liquify your stakes and get Marinated tokens.
                 </p>
               </div>
             </div>
@@ -251,23 +251,22 @@ export const HomeView = () => {
               <div>
                 <span className="subtext table-left">Step 1</span>
                 <p className="subtext">
-                  Browse our stake menu, stake and receive freshly minted Tender
-                  tokens that represent your stake and rewards.
+                  Browse our stake menu, stake and receive freshly minted
+                  Marinated tokens that represent your stake and rewards.
                 </p>
               </div>
               <div>
                 <span className="subtext table-left">Step 2</span>
                 <p className="subtext">
                   Sit down, relax and start receiving staking rewards. As your
-                  stakes tenderize, the value of your Tender tokens go up.
+                  stakes marinades, the value of your Marinated tokens go up.
                 </p>
               </div>
               <div>
                 <span className="subtext table-left">Step 3</span>
                 <p className="subtext">
-                  Skip the waiting periods with your newly tenderized stake. Go
-                  utilize, liquidize, and collateralize, all while you
-                  tenderize!
+                  Skip the waiting periods with your newly marinated stake. Go
+                  utilize, liquidize, and collateralize, all while you marinade!
                 </p>
               </div>
             </div>
@@ -281,7 +280,7 @@ export const HomeView = () => {
       </Col>
       <Col span={8}>
         <p className="subtext">
-          Friends don’t let friends stake, unless they tenderize.
+          Friends don’t let friends stake, unless they marinade.
         </p>
       </Col>
       <Col span={24}>

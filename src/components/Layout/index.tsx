@@ -14,7 +14,18 @@ export const AppLayout = React.memo((props: any) => {
         style={{ background: "#FFE8B9", height: "50px", paddingTop: "10px" }}
       >
         <h1 className="announcement">
-          Tenderize.me is currently only live on Solana testnet.
+          Marinade.finance won 3rd place in recent Solana x Serum DeFi
+          Hackathon.{" "}
+          <a
+            href="https://discord.gg/CNjTngWJ"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="text-success text-decoration-underline">
+              We're hiring
+            </span>
+          </a>{" "}
+          too!
         </h1>
       </div>
       <Layout>
@@ -34,14 +45,32 @@ export const AppLayout = React.memo((props: any) => {
           </Link>
           <Menu mode="horizontal">
             <Menu.Item key="discord" color="#000000">
-              <a href="https://discord.gg/CNjTngWJ">Discord</a>
+              <a
+                href="https://discord.gg/CNjTngWJ"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Discord
+              </a>
             </Menu.Item>
 
             <Menu.Item key="twitter">
-              <a href="https://medium.com/tenderize-me">Medium</a>
+              <a
+                href="https://medium.com/tenderize-me"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Medium
+              </a>
             </Menu.Item>
             <Menu.Item key="medium">
-              <a href="https://twitter.com/tenderize_me">Twitter</a>
+              <a
+                href="https://twitter.com/tenderize_me"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Twitter
+              </a>
             </Menu.Item>
           </Menu>
           <AppBar />
