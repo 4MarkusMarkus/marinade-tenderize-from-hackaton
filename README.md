@@ -2,21 +2,21 @@
 
 Marinade.finance is a non-custodial liquid staking solution, focused on yield maximisation and ease of use while keeping staking decentralized!
 
-Start Tenderizing now on testnet at https://solana.tenderize.me/ !
+Start Marinating now on testnet at https://marinade.finance !
 
 ## Overview
 
 ### Benefits
 
-🔨🥩 Making staking easy and tender
+🔨🥩 Making staking easy and marinated
 
 👨‍🌾 Maximizing yield, automatic reinvesting
 
-🌊 Liquifying staking by minting tenderSol token
+🌊 Liquifying staking by minting marinatedSol token
 
-We provide users with tenderSol, a value accruing staking derivative token, which allows them to enter or exit staking with no bonding and unbonding period!
+We provide users with marinatedSol, a value accruing staking derivative token, which allows them to enter or exit staking with no bonding and unbonding period!
 Our main focus is to make staking more efficient and easy for regular non-technical Solana community members.
-Having a tenderSol token that represents their staking position allows users to use it again, for example as a collateral in other protocols.
+Having a marinatedSol token that represents their staking position allows users to use it again, for example as a collateral in other protocols.
 
 ### Features
 
@@ -44,7 +44,7 @@ We want the token to be truly liquid. We use balancer pool to do this. We keep a
 
 **Liquidifying staking position**
 
-If people stake just by providing funds to the staker contract, their funds are illiquid. By providing people with tenderToken, we allow them to sell / buy their position freely on secondary market or use it as collateral.
+If people stake just by providing funds to the staker contract, their funds are illiquid. By providing people with marinatedToken, we allow them to sell / buy their position freely on secondary market or use it as collateral.
 
 **Higher staking rewards**
 
@@ -89,18 +89,18 @@ There you can find:
 
 ### testnet deployment
 
-You can Tenderize your SOLs on solana testnet already.
+You can Marinate your SOLs on solana testnet already.
 
-Just go to https://solana.tenderize.me/ change your network to testnet and you are ready to Tenderize!!!
+Just go to https://marinade.finance change your network to testnet and you are ready to Marinate!!!
 
 You can check out a deployed AMM pool with tSOLs/SOLs tokens as well. "Swap" button in upper right corner will take you to the pool (deployed on testnet too).
 
 ### local deployment
 
 ```bash
-git clone https://github.com/Tenderize/Tenderize-on-solana.git
+git clone https://github.com/marinade-finance/legacy
 
-cd Tenderize-on-solana
+cd legacy
 ```
 
 > prepare project + start frontend
@@ -157,4 +157,4 @@ npm install
 
 ```
 
-Tada! you can Tenderize your SOLs now 🥩🔨!
+Tada! you can marinate your SOLs now 🥩🔨!

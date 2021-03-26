@@ -40,7 +40,8 @@ export const AppLayout = React.memo((props: any) => {
         >
           <Link to="/">
             <div className="app-title">
-              <img src={tenderizeLogo} alt="tenderize logo" />
+              {/* <img src={tenderizeLogo} alt="tenderize logo" /> */}
+              <h1>Marinade</h1>
             </div>
           </Link>
           <Menu mode="horizontal">
