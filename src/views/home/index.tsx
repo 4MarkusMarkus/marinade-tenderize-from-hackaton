@@ -5,8 +5,8 @@ import { useConnectionConfig } from "../../contexts/connection";
 import { useMarkets } from "../../contexts/market";
 import { Link } from "react-router-dom";
 
-// const stakeHammer = require('../../img/stakeHammer.svg');
-const potionHero = require("../../img/potionHero.svg");
+const chef = require("../../img/chef.svg");
+const barbecue = require("../../img/barbecue.svg");
 const friends = require("../../img/friends.svg");
 const solanaLogo = require("../../img/solanaLogo.svg");
 const polygonLogo = require("../../img/polygonDark.svg");
@@ -37,41 +37,38 @@ export const HomeView = () => {
 
   return (
     <Row gutter={[48, 48]} align="middle">
+      <Col span={8} offset={2}>
+        <div>
+          <img style={{ maxWidth: "100%" }} src={chef} alt="chef" />
+        </div>
+        {/* <p>{balance}</p> */}
+      </Col>
       <Col
-        span={24}
+        span={12}
         style={{
           marginTop: "70px",
           marginBottom: "50px",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
+          alignItems: "start",
+          textAlign: "left",
         }}
       >
         <h2 className="title" style={{ marginTop: "1em", marginBottom: 0 }}>
-          The easiest way to stake your tokens
+          The easiest way to stake your tokens and avoid unstake period
         </h2>
-        <h2 className="title" style={{ marginTop: 0 }}>
-          and get rewards
-        </h2>
-        <h3 className="subtext" style={{ marginBottom: "2em" }}>
+
+        <h3 className="subtext" style={{ marginTop: "1em" }}>
           Enjoy automatic reinvestment of rewards and immediate access to your
-          tokens. <br /> Don't just 🥩 stake me, 👨‍🍳 Marinade me first!
-          {/* Making
-            <span style={{ color: '#4E66DE', fontWeight: 900 }}>
-              {' stake easier '}
-            </span>
-            to chew. */}
+          tokens. <br />
+          <br /> Don't just 🥩 stake, 👨‍🍳 use Marinade first!
         </h3>
-        {/* <div style={{ position: "relative" }}>
-          <img id="meat" width="100" src={meat} alt="logo" />
-          <img id="hammer" width="130" src={hammer} alt="logo" />
-        </div> */}
       </Col>
       <Col
         span={22}
         offset={1}
         style={{
-          marginTop: "120px",
+          marginTop: "20px",
           height: "450",
           display: "flex",
           justifyContent: "space-around",
@@ -185,7 +182,7 @@ export const HomeView = () => {
       </Col>
       <Col span={10} offset={2}>
         <div style={{ marginTop: "100px", marginBottom: "70px" }}>
-          <img style={{ maxWidth: "100%" }} src={potionHero} alt="potionHero" />
+          <img style={{ maxWidth: "100%" }} src={barbecue} alt="barbecue" />
         </div>
         {/* <p>{balance}</p> */}
       </Col>
@@ -198,7 +195,7 @@ export const HomeView = () => {
         </p>
       </Col>
       <Col span={24}>
-        <div style={{ height: "65vh", marginBottom: "30px" }}>
+        <div style={{ marginBottom: "30px" }}>
           <div className="table card">
             <h1 style={{ fontWeight: 600, marginTop: "20px" }}>
               Why Marinade?
@@ -242,7 +239,9 @@ export const HomeView = () => {
         </div>
       </Col>
       <Col span={24}>
-        <div style={{ height: "65vh", marginBottom: "30px" }}>
+        <div
+          style={{ height: "65vh", marginBottom: "30px", marginTop: "80px" }}
+        >
           <div className="table card">
             <h1 style={{ fontWeight: 600, marginTop: "20px" }}>
               How does it work?
@@ -273,7 +272,7 @@ export const HomeView = () => {
           </div>
         </div>
       </Col>
-      <Col span={12} offset={2} style={{ marginTop: "50px" }}>
+      <Col span={12} offset={2}>
         <div style={{ marginTop: "80px", marginBottom: "100px" }}>
           <img style={{ maxWidth: "100%" }} src={friends} alt="friends" />
         </div>

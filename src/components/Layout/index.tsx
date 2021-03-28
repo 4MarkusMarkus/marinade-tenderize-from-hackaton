@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { AppBar } from "../AppBar";
 
 const { Header, Content } = Layout;
-const tenderizeLogo = require("../../img/tenderizeLogo.svg");
+const logo = require("../../img/logo.svg");
 
 export const AppLayout = React.memo((props: any) => {
   return (
@@ -29,19 +29,28 @@ export const AppLayout = React.memo((props: any) => {
         </h1>
       </div>
       <Layout>
-        <div className="background"></div>
+        {/* <div className="background"></div>
         <div className="bg-container">
           <div className="bg-inner"></div>
-        </div>
+        </div> */}
 
         <Header
           className="App-Bar"
           style={{ marginTop: "20px", marginBottom: "20px" }}
         >
           <Link to="/">
-            <div className="app-title">
-              {/* <img src={tenderizeLogo} alt="tenderize logo" /> */}
-              <h1>Marinade</h1>
+            <div
+              className="app-title"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <img src={logo} style={{ height: "32px" }} alt="logo" />
+              <div style={{ marginLeft: "8px", marginTop: "12px" }}>
+                <h1 style={{ fontWeight: "bold" }}>Marinade</h1>
+              </div>
             </div>
           </Link>
           <Menu mode="horizontal">
@@ -57,7 +66,7 @@ export const AppLayout = React.memo((props: any) => {
 
             <Menu.Item key="twitter">
               <a
-                href="https://medium.com/tenderize-me"
+                href="https://medium.com/marinade-finance"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -66,7 +75,7 @@ export const AppLayout = React.memo((props: any) => {
             </Menu.Item>
             <Menu.Item key="medium">
               <a
-                href="https://twitter.com/tenderize_me"
+                href="https://twitter.com/FinanceMarinade"
                 target="_blank"
                 rel="noopener noreferrer"
               >

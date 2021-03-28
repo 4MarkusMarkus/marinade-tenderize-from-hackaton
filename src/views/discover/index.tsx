@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 // import { useLendingReserve } from '../../hooks';
 // import { useParams } from 'react-router-dom';
 // import { Link } from 'react-router-dom';
 
 // import { DepositInput } from '../../components/DepositInput';
-import { Card, Tabs } from 'antd';
-import { Line } from 'react-chartjs-2';
+import { Card, Tabs } from "antd";
+import { Line } from "react-chartjs-2";
 // import { sendTransaction, useConnection } from '../../contexts/connection';
 // import { useNativeAccount } from '../../contexts/accounts';
 // // import { STAKE_POOL_ID } from '../../utils/ids';
@@ -21,12 +21,12 @@ import { Line } from 'react-chartjs-2';
 //   WalletAdapter,
 //   WalletProvider,
 // } from '../../contexts/wallet';
-import { DepositInput } from '../../components/DepositInput';
-import { WithdrawInput } from '../../components/WithdrawInput';
+import { DepositInput } from "../../components/DepositInput";
+import { WithdrawInput } from "../../components/WithdrawInput";
 // import { LendingReserve } from '../../models/lending';
 
-const solanaLogo = require('../../img/solanaLogo.svg');
-const tenderSol = require('../../img/tenderSol.svg');
+const solanaLogo = require("../../img/solanaLogo.svg");
+const tenderSol = require("../../img/tenderSol.svg");
 const { TabPane } = Tabs;
 
 export const DiscoverView = () => {
@@ -141,23 +141,22 @@ export const DiscoverView = () => {
     labels: dateData,
 
     datasets: [
-      
       {
-        label: '100 SOLs',
-        backgroundColor: 'rgba(75,192,192,0.3)',
-        borderColor: 'rgba(75,192,192,1)',
+        label: "100 SOLs",
+        backgroundColor: "rgba(244, 171, 46,0.3)",
+        borderColor: "rgba(244, 171, 46,1)",
         borderWidth: 2,
         data: data2,
         fill: true,
       },
       {
-        label: '100 tSOLs',
-        backgroundColor: 'rgba(78, 102, 222, 0.2)',
-        borderColor: '#4e66de',
+        label: "100 tSOLs",
+        backgroundColor: "rgba(173, 65, 50, 0.2)",
+        borderColor: "rgba(173, 65, 50,1)",
         borderWidth: 2,
         data: data1,
         fill: true,
-      }
+      },
     ],
   };
 
@@ -165,9 +164,9 @@ export const DiscoverView = () => {
     labels: dateData,
     datasets: [
       {
-        label: 'SOL',
-        backgroundColor: 'rgba(75,192,192,0.3)',
-        borderColor: 'rgba(75,192,192,1)',
+        label: "SOL",
+        backgroundColor: "rgba(244, 171, 46,0.3)",
+        borderColor: "rgba(244, 171, 46,1)",
         borderWidth: 2,
         data: data3,
         fill: true,
@@ -223,27 +222,27 @@ export const DiscoverView = () => {
   return (
     <div
       style={{
-        display: 'flex',
-        height: '200%',
-        width: '100%',
-        justifyContent: 'center',
+        display: "flex",
+        height: "200%",
+        width: "100%",
+        justifyContent: "center",
       }}
     >
       <div
         style={{
-          width: '60%',
-          marginRight: '40px',
-          textAlign: 'left',
-          display: 'flex',
-          flexDirection: 'column',
+          width: "60%",
+          marginRight: "40px",
+          textAlign: "left",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <div>
           <h1 style={{ fontWeight: 600 }}>
-          Projected value of 100 tenderSOLs (tSOLs) and 100 SOLs
+            Projected value of 100 marinatedSOLs (mSOLs) and 100 SOLs
           </h1>
           <h3>(compared to HODL SOL)</h3>
-          <Card className='card'>
+          <Card className="card">
             <Line
               data={state}
               options={{
@@ -256,7 +255,7 @@ export const DiscoverView = () => {
                       ticks: {
                         // Include a dollar sign in the ticks
                         callback: function (value: any) {
-                          return '$' + value;
+                          return "$" + value;
                         },
                       },
                     },
@@ -265,10 +264,10 @@ export const DiscoverView = () => {
               }}
             />
           </Card>
-          <h1 style={{ fontWeight: 600, marginTop: '30px' }}>
-            Projected value of tSOL/SOL pair
+          <h1 style={{ fontWeight: 600, marginTop: "30px" }}>
+            Projected value of mSOL/SOL pair
           </h1>
-          <Card className='card'>
+          <Card className="card">
             <Line
               data={state2}
               options={{
@@ -280,56 +279,57 @@ export const DiscoverView = () => {
           </Card>
         </div>
 
-        <div style={{ marginTop: '30px' }}>
-          <h1 style={{ fontWeight: 600 }}>What is tenderSol?</h1>
-          <p className='regulartext'>
-            TenderSol is a value accruing staking derivative token, which allows
-            you to stake or unstake without any no bonding and unbonding period!
+        <div style={{ marginTop: "30px" }}>
+          <h1 style={{ fontWeight: 600 }}>What is marinatedSol?</h1>
+          <p className="regulartext">
+            MarinatedSol is a value accruing staking derivative token, which
+            allows you to stake or unstake without any no bonding and unbonding
+            period!
           </p>
-          <p className='regulartext'>
+          <p className="regulartext">
             Simply put, you can stake yours SOL tokens easily and maximize your
-            rewards. You can also trade your tenderSols, use them as a
+            rewards. You can also trade your marinatedSols, use them as a
             collateral or just keep them under the pillow!
           </p>
-          <p className='regulartext'>
+          <p className="regulartext">
             Our main focus is to make staking more efficient and easy for Solana
-            community. Having a tenderSol token that represents your staking
+            community. Having a marinatedSol token that represents your staking
             position you to use it again, for example as a collateral in other
             protocols.
           </p>
-          <p className='regulartext'>
-            Find out more about Solana{' '}
+          <p className="regulartext">
+            Find out more about Solana{" "}
             <a
-              href='https://solana.com/'
-              target='_blank'
-              rel='noopener noreferrer'
-              className='regulartext'
-              style={{ color: '#51C0BF' }}
+              href="https://solana.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="regulartext"
+              // style={{ color: "#51C0BF" }}
             >
               here
             </a>
             !
           </p>
         </div>
-      </div>   
-      <div style={{width: '40%'}}> 
-        <div className='sticky' >
-          <Card style={{ width: '100%', overflow: 'auto'}}>
-            <Tabs defaultActiveKey='1' centered={true}>
-              <TabPane tab='Stake' key='1' >
+      </div>
+      <div style={{ width: "40%" }}>
+        <div className="sticky">
+          <Card style={{ width: "100%", overflow: "auto" }}>
+            <Tabs defaultActiveKey="1" centered={true}>
+              <TabPane tab="Stake" key="1">
                 <div>
                   <img
                     src={solanaLogo}
-                    alt='solana logo'
-                    width='100'
-                    style={{ maxWidth: '30%' }}
+                    alt="solana logo"
+                    width="100"
+                    style={{ maxWidth: "30%" }}
                   />
-                  <h2 className='subtext' style={{ marginTop: '5px' }}>
+                  <h2 className="subtext" style={{ marginTop: "5px" }}>
                     SOL Token
                   </h2>
                 </div>
-                <div style={{ marginTop: '5px', marginBottom: '5px' }}>
-                  <h2 className='title' style={{ marginBottom: 0 }}>
+                <div style={{ marginTop: "5px", marginBottom: "5px" }}>
+                  <h2 className="title" style={{ marginBottom: 0 }}>
                     15.5%
                   </h2>
                   <h3 style={{ marginBottom: 0 }}>Rewards</h3>
@@ -354,20 +354,20 @@ export const DiscoverView = () => {
                   Stake
                 </Button> */}
               </TabPane>
-              <TabPane tab='Unstake' key='2' >
+              <TabPane tab="Unstake" key="2">
                 <div>
                   <img
                     src={tenderSol}
-                    alt='tender solana logo'
-                    width='100'
-                    style={{ maxWidth: '30%' }}
+                    alt="tender solana logo"
+                    width="100"
+                    style={{ maxWidth: "30%" }}
                   />
-                  <h2 className='subtext' style={{ marginTop: '5px' }}>
-                    tSOL Token
+                  <h2 className="subtext" style={{ marginTop: "5px" }}>
+                    mSOL Token
                   </h2>
                 </div>
-                <div style={{ marginTop: '5px', marginBottom: '5px' }}>
-                  <h2 className='title' style={{ marginBottom: 0 }}>
+                <div style={{ marginTop: "5px", marginBottom: "5px" }}>
+                  <h2 className="title" style={{ marginBottom: 0 }}>
                     15.5%
                   </h2>
                   <h3 style={{ marginBottom: 0 }}>Rewards</h3>
