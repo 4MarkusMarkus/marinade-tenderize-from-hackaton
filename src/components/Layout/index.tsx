@@ -14,18 +14,16 @@ export const AppLayout = React.memo((props: any) => {
         style={{ background: "#FFE8B9", height: "50px", paddingTop: "10px" }}
       >
         <h1 className="announcement">
-          Marinade.finance won 3rd place in recent Solana x Serum DeFi
-          Hackathon.{" "}
+          Are you considering helping us Marinading Finance?{" "}
           <a
-            href="https://discord.gg/CNjTngWJ"
+            href="https://discord.gg/mGqZA5pjRN"
             target="_blank"
             rel="noopener noreferrer"
           >
             <span className="text-success text-decoration-underline">
-              We're hiring
+              We're looking for you!
             </span>
-          </a>{" "}
-          too!
+          </a>
         </h1>
       </div>
       <Layout>
@@ -56,7 +54,7 @@ export const AppLayout = React.memo((props: any) => {
           <Menu mode="horizontal">
             <Menu.Item key="discord" color="#000000">
               <a
-                href="https://discord.gg/CNjTngWJ"
+                href="https://discord.gg/mGqZA5pjRN"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -75,7 +73,7 @@ export const AppLayout = React.memo((props: any) => {
             </Menu.Item>
             <Menu.Item key="medium">
               <a
-                href="https://twitter.com/FinanceMarinade"
+                href="https://twitter.com/MarinadeFinance"
                 target="_blank"
                 rel="noopener noreferrer"
               >

@@ -376,6 +376,9 @@ export const DiscoverView = () => {
                 <WithdrawInput />
               </TabPane>
             </Tabs>
+            <p style={{ marginTop: "4px", textAlign: "center" }}>
+              Our solution is currently working on testnet.{" "}
+            </p>
           </Card>
         </div>
       </div>

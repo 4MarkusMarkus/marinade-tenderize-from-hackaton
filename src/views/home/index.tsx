@@ -55,12 +55,12 @@ export const HomeView = () => {
         }}
       >
         <h2 className="title" style={{ marginTop: "1em", marginBottom: 0 }}>
-          The easiest way to stake your tokens and avoid unstake period
+          The easiest way to stake your tokens
         </h2>
 
         <h3 className="subtext" style={{ marginTop: "1em" }}>
           Enjoy automatic reinvestment of rewards and immediate access to your
-          tokens. <br />
+          tokens with no lockup period. <br />
           <br /> Don't just 🥩 stake, 👨‍🍳 use Marinade first!
         </h3>
       </Col>
