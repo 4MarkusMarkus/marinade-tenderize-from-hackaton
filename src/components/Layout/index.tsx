@@ -2,7 +2,7 @@ import React from "react";
 import "./../../App.less";
 import { Layout, Menu } from "antd";
 import { Link } from "react-router-dom";
-import { AppBar } from "../AppBar";
+// import { AppBar } from "../AppBar";
 
 const { Header, Content } = Layout;
 const logo = require("../../img/logo.svg");
@@ -81,7 +81,7 @@ export const AppLayout = React.memo((props: any) => {
               </a>
             </Menu.Item>
           </Menu>
-          <AppBar />
+          {/* <AppBar /> */}
         </Header>
         <Content style={{ padding: "0 50px" }}>{props.children}</Content>
       </Layout>

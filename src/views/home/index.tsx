@@ -1,21 +1,21 @@
-import { Col, Row, Card, Button } from "antd";
+import { Col, Row, Button } from "antd";
 import React, { useEffect } from "react";
 // import { ConnectButton } from '../../components/ConnectButton';
 import { useConnectionConfig } from "../../contexts/connection";
 import { useMarkets } from "../../contexts/market";
-import { Link } from "react-router-dom";
+// import { Link } from "react-router-dom";
 
 const chef = require("../../img/chef.svg");
-const barbecue = require("../../img/barbecue.svg");
-const friends = require("../../img/friends.svg");
-const solanaLogo = require("../../img/solanaLogo.svg");
-const polygonLogo = require("../../img/polygonDark.svg");
-const keepLogo = require("../../img/keep.svg");
+// const barbecue = require("../../img/barbecue.svg");
+// const friends = require("../../img/friends.svg");
+// const solanaLogo = require("../../img/solanaLogo.svg");
+// const polygonLogo = require("../../img/polygonDark.svg");
+// const keepLogo = require("../../img/keep.svg");
 // const hammer = require("../../img/hammer.svg");
 // const meat = require("../../img/meat.svg");
-const ocean = require("../../img/ocean.svg");
-const farmer = require("../../img/farmer.svg");
-const stakeHammer = require("../../img/stakeHammer.svg");
+// const ocean = require("../../img/ocean.svg");
+// const farmer = require("../../img/farmer.svg");
+// const stakeHammer = require("../../img/stakeHammer.svg");
 
 export const HomeView = () => {
   const { marketEmitter, midPriceInUSD } = useMarkets();
@@ -36,7 +36,7 @@ export const HomeView = () => {
   }, [marketEmitter, midPriceInUSD, tokenMap]);
 
   return (
-    <Row gutter={[48, 48]} align="middle">
+    <Row gutter={[48, 48]} style={{ marginTop: "120px" }}>
       <Col span={8} offset={2}>
         <div>
           <img style={{ maxWidth: "100%" }} src={chef} alt="chef" />
@@ -46,7 +46,6 @@ export const HomeView = () => {
       <Col
         span={12}
         style={{
-          marginTop: "70px",
           marginBottom: "50px",
           display: "flex",
           flexDirection: "column",
@@ -59,12 +58,28 @@ export const HomeView = () => {
         </h2>
 
         <h3 className="subtext" style={{ marginTop: "1em" }}>
-          Enjoy automatic reinvestment of rewards and immediate access to your
-          tokens with no lockup period. <br />
+          Marinade.finance is a liquid staking protocol built on Solana. Enjoy
+          automatic reinvestment of rewards and immediate access to your tokens
+          with no lockup period. <br />
           <br /> Don't just 🥩 stake, 👨‍🍳 use Marinade first!
+          <br />
+          <br />
         </h3>
+        <div>
+          <a
+            href="https://discord.gg/mGqZA5pjRN"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {" "}
+            <Button size="large" className="tenderButton tenderButtonShade">
+              Join our Discord
+            </Button>
+          </a>
+        </div>
       </Col>
-      <Col
+
+      {/* <Col
         span={22}
         offset={1}
         style={{
@@ -138,7 +153,7 @@ export const HomeView = () => {
               onClick={() => handleClick('/discover')}
             >
               Stake
-            </ConnectButton> */}
+            </ConnectButton>
 
             <Link to="/discover" style={{ width: "100%" }}>
               <Button className="tenderButton tenderButtonShade">
@@ -184,7 +199,7 @@ export const HomeView = () => {
         <div style={{ marginTop: "100px", marginBottom: "70px" }}>
           <img style={{ maxWidth: "100%" }} src={barbecue} alt="barbecue" />
         </div>
-        {/* <p>{balance}</p> */}
+        {/* <p>{balance}</p> 
       </Col>
       <Col span={10}>
         <p className="subtext">Marinade is a liquid staking protocol. </p>
@@ -284,7 +299,7 @@ export const HomeView = () => {
       </Col>
       <Col span={24}>
         <div className="builton" />
-      </Col>
+      </Col> */}
     </Row>
   );
 };
